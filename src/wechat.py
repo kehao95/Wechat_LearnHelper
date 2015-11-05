@@ -2,6 +2,9 @@ from flask import Flask, request, abort
 import hashlib
 import xmltodict
 import time
+import sys
+sys.append("./lib/wechat-python-sdk")
+import wechat_sdk
 
 app = Flask(__name__)
 
