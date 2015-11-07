@@ -3,15 +3,18 @@ import hashlib
 import xmltodict
 import time
 import sys
-sys.append("./lib/wechat-python-sdk")
-import wechat_sdk
+sys.path.append("./lib/wechat-python-sdk")
+import wechat_sdk as wechat
+
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
 _APP_TOKEN = '***REMOVED***'
 
-
-
+logger.info("start")
 
 @app.route('/', methods=['GET', 'POST'])
 def listener():
@@ -68,27 +71,8 @@ def response_pack(data, re_string=None):
     response = xmltodict.unparse(data)
     return response
 
-def demo(demo_type):
-    if demo_type=="作业":
-        print("作业")
-        with open('/home/kehao/Repo/Wechat_LearnHelper/demo_deadlines', 'r') as f:
-            r = "".join(f.readlines())
-            r+="底部为最近需提交的作业"
-            print(r)
-            return r
-    elif demo_type=="通知":
-        print("通知")
-        with open('/home/kehao/Repo/Wechat_LearnHelper/demo_messages', 'r') as f:
-            r = "".join(f.readlines())
-            r+="底部的为最新通知"
-            print(r)
-            return r
-
 
 
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', use_debugger=True, use_reloader=False)
-
-
-
