@@ -1,12 +1,13 @@
 from flask import Flask, request, abort
 import hashlib
-
+import sys
+sys.path+=["./lib","./lib/wechat-python-sdk"]
 from wechat_sdk import WechatBasic
 from wechat_sdk.messages import (
     TextMessage, VoiceMessage, ImageMessage, VideoMessage, LinkMessage, LocationMessage, EventMessage
 )
 import logging
-import sys
+
 
 _APP_TOKEN = '***REMOVED***'
 
