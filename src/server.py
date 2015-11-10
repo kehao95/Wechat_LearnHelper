@@ -1,7 +1,8 @@
-from flask import Flask, request, abort
+from flask import Flask, request, abort, render_template
 import hashlib
 import sys
 import time
+
 sys.path += ["./lib", "./lib/wechat-python-sdk"]
 from wechat_sdk import WechatBasic
 from wechat_sdk.messages import (
@@ -11,9 +12,7 @@ import logging
 
 _APP_TOKEN = '***REMOVED***'
 
-
 # logger
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.debug("Debug Mode On")
@@ -26,8 +25,10 @@ app = Flask(__name__)
 
 @app.route('/', methods=['GET', 'POST'])
 def listener():
-    wechat
-    if check_SHA1(request) is False: abort(500)
+    signature = request.args.get('signature')
+    timestamp = request.args.get('timestamp')
+    nonce = request.args.get('nonce')
+    if not wechat.check_signature(signature, timestamp, nonce): abort(500)
     # 测试号绑定
     if request.method == 'GET':
         logger.info("get")
@@ -35,49 +36,45 @@ def listener():
         return echostr
     else:  # 主要功能
         logger.info("post")
-        respose = handle_request(request)
+        data = request.get_data().decode('utf-8')
+        respose = handle_request(data)
         logger.debug("send response: %s", respose)
         return respose
 
 
-def check_SHA1(request):
-    try:
-        signature = request.args.get('signature')
-        timestamp = request.args.get('timestamp')
-        nonce = request.args.get('nonce')
-        token = _APP_TOKEN
-        print(signature)
-        l = [token, timestamp, nonce]
-        l.sort()
-        sha1 = hashlib.sha1()
-        sha1.update("".join(l).encode('utf-8'))
-        hashcode = sha1.hexdigest()
-        if hashcode == signature:
-            logger.info("Sha1 check valid")
-            return True
-        else:
-            return False
-    except(Exception):
-        logger.error("invalid URL")
-        return False
+@app.route('/bind')
+def bind_student_account():
+    return render_template("bind.html")
 
 
-def handle_request(request):
+def handle_request(data):
     logger.debug("handle_request")
-    signature = request.args.get('signature')
-    timestamp = request.args.get('timestamp')
-    data = request.get_data().decode('utf-8')
     wechat.parse_data(data)
     message = wechat.get_message()
+    openID = message.source
     response = ""
     if isinstance(message, TextMessage):
         print("TextMessage")
-        time.sleep(10)
-        response = wechat.response_text(content="hello")
+        if "绑定" in message.content:
+            response = response_bind(openID)
+        elif "解除绑定" in message.content:
+            return wechat.response_text(content="此功能暂时未开发")
+        else:
+            return wechat.response_text(content=message.content)
     else:
         print("OtherMessage")
-        response = wechat.response_text(content="请输入文字信息")
+        return wechat.response_text(content="请输入文字信息")
     return response
+
+
+def response_bind(openID) -> str:
+    card = {
+        'description': "用户:%s" % openID,
+        'picurl': "http://59.66.139.26:5000/bind",
+        'url': "http://59.66.139.26:5000/bind",
+        'title': "绑定"
+    }
+    return wechat.response_news([card])
 
 
 if __name__ == '__main__':

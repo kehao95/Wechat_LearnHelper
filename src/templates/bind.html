@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>绑定账户</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<script type="application/x-javascript"> addEventListener("load", function() { setTimeout(hideURLbar, 0); }, false); function hideURLbar(){ window.scrollTo(0,1); } </script>
+<link rel="stylesheet" href="{{url_for("static/css", filename="style.css")}}" type="text/css" media="all" />
+<script src = "scripts/jquery.js"></script>
+<script src = "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+<script src= "scripts/bootbox.js"></script>
+</head>
+<body>
+
+<div class="container">
+     <div class="contact-form">
+	 <div class="signin">
+     <form id="register">
+	      <p>学号</p>
+	      <input type="text" class="user" value="你的学号" onfocus="this.value = '';" onblur="if (this.value == '') {this.value = 'Enter Here';}" />
+		  <p>密码</p>
+		  <input type="password" class="pass" value="Password" onfocus="this.value = '';" onblur="if (this.value == '') {this.value = 'Password';}" />
+          <input type="submit" value="绑定" />
+	 </form>
+	 </div>
+	 </div> 
+</div>
+</body>
+</html>
