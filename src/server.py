@@ -1,13 +1,13 @@
 from flask import Flask, request, abort
 import hashlib
 import sys
-sys.path+=["./lib","./lib/wechat-python-sdk"]
+import time
+sys.path += ["./lib", "./lib/wechat-python-sdk"]
 from wechat_sdk import WechatBasic
 from wechat_sdk.messages import (
     TextMessage, VoiceMessage, ImageMessage, VideoMessage, LinkMessage, LocationMessage, EventMessage
 )
 import logging
-
 
 _APP_TOKEN = '***REMOVED***'
 
@@ -36,7 +36,7 @@ def listener():
     else:  # 主要功能
         logger.info("post")
         respose = handle_request(request)
-        logger.debug("send response: %s",respose)
+        logger.debug("send response: %s", respose)
         return respose
 
 
@@ -72,6 +72,7 @@ def handle_request(request):
     response = ""
     if isinstance(message, TextMessage):
         print("TextMessage")
+        time.sleep(10)
         response = wechat.response_text(content="hello")
     else:
         print("OtherMessage")
