@@ -28,13 +28,8 @@ _APP_TOKEN = ""
 _APP_SECRET = ""
 _APP_ID = ""
 app = Flask(__name__)
-# wechat
 wechat = None
-# logger
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-logger.debug("Debug Mode On")
-logger.info("Info On")
+logger = None
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -58,7 +53,8 @@ def main_listener():
         data = request.get_data().decode('utf-8')
         try:
             with timeout(5):
-                response = handle_request(data)
+                handler = Handler(data)
+                response = handler.get_response()
         except TimeoutError:
             response = ""
         return response
@@ -113,127 +109,135 @@ def bind_student_account():
     return jsonify({"result": result})
 
 
-def handle_request(data) -> str:
+class Handler:
     """
-    根据message类型以及内容确定事件类型
-    交给response处理获取并返回response
-    :param message data:
-    :return: response
+    消息处理类，对每人次消息构造一次各方法共用消息的基本信息
+    函数共用user信息使得个性化响应更方便友好
     """
-    logger.debug("handle_request")
-    wechat.parse_data(data)
-    message = wechat.get_message()
-    openID = message.source
-    response = ""
-    if isinstance(message, TextMessage):
-        logger.debug("TextMessage")
-        content = message.content
-        if "绑定" in content:
-            response = response_bind(openID)
-        elif "作业" in content:
-            response = response_homework(openID)
-        elif "公告" in content:
-            response = response_announce(openID)
-        elif "解除绑定" in content:
-            response = wechat.response_text(content="此功能暂时未开发")
-        else:
-            response = wechat.response_text(content="Echo:%s" % content)
-    else:
-        logger.debug("OtherMessage")
-        return wechat.response_text(content="请输入文字信息")
-    return response
+    global wechat
+    global logger
 
+    def __init__(self, data):
+        self.wechat = wechat
+        self.data = data
+        wechat.parse_data(data)
+        self.message = wechat.message
+        self.openID = self.message.source
 
-def response_bind(openID) -> str:
-    try:
-        isalreadybinded = database.isOpenIDBound(openID)
-    except:
-        isalreadybinded = False
-    if isalreadybinded:
-        return wechat.response_text(content="您已经绑定过学号了。")
-    card = {
-        'description': "用户:%s" % openID,
-        'url': "%s/bind?openID=%s" % (_HOST_HTTP, openID),
-        'title': "绑定"
-    }
-    return wechat.response_news([card])
-
-
-def response_homework(openID) -> str:
-    try:
-        isalreadybinded = database.isOpenIDBound(openID)  # functionA(openID)
-    except:
-        isalreadybinded = True
-    if not isalreadybinded:
-        return wechat.response_text(content="您还未绑定过学号。")
-    else:
+    def response_bind(self) -> str:
+        try:
+            isalreadybinded = database.isOpenIDBound(self.openID)
+        except:
+            isalreadybinded = False
+        if isalreadybinded:
+            return wechat.response_text(content="您已经绑定过学号了。")
         card = {
-            'description': "用户:%s" % openID,
-            'url': "%s/homework?openID=%s" % (_HOST_HTTP, openID),
-            'title': "作业"
+            'description': "用户:%s" % self.openID,
+            'url': "%s/bind?openID=%s" % (_HOST_HTTP, self.openID),
+            'title': "绑定"
         }
         return wechat.response_news([card])
 
-
-def response_announce(openID) -> str:
-    try:
-        isalreadybinded = database.isOpenIDBound(openID)  # functionA(openID)
+    def response_homework(self) -> str:
+        try:
+            isalreadybinded = database.isOpenIDBound(self.openID)  # functionA(openID)
+        except:
+            isalreadybinded = True
         if not isalreadybinded:
             return wechat.response_text(content="您还未绑定过学号。")
-        announcements = database.get_messages_in_days(openID, 30)
-    except:
-        openID = "3"
-        announcements = [
-            {"_Time": date(2015, 1, 1), "_CourseName": "测试课程", "_Title": "测试案例、测试案例、测试案例、测试案例", "_Text": ""},
-            {"_Time": date(2011, 1, 1), "_CourseName": "软件工程", "_Title": "请同学们迭代一注意控制时间", "_Text": "详细内容"},
-            {"_Time": date(2011, 1, 2), "_CourseName": "软件工程", "_Title": "邮箱", "_Text": ""},
-            {"_Time": date(2011, 1, 1), "_CourseName": "工图", "_Title": "大作业要求", "_Text": ""},
-            {"_Time": date(2011, 1, 15), "_CourseName": "计网", "_Title": "大作业要求", "_Text": ""},
-            {"_Time": date(2010, 1, 1), "_CourseName": "计网", "_Title": "大作业要求", "_Text": ""},
-            {"_Time": date(2011, 1, 31), "_CourseName": "函数式语言", "_Title": "大作业要求", "_Text": ""},
-            {"_Time": date(2011, 12, 1), "_CourseName": "操作系统", "_Title": "大作业要求", "_Text": ""},
-            {"_Time": date(2011, 1, 11), "_CourseName": "操作系统", "_Title": "代码报告要求", "_Text": ""},
-            {"_Time": date(2011, 1, 31), "_CourseName": "操作系统", "_Title": "作业已上传", "_Text": ""},
-            {"_Time": date(2011, 12, 1), "_CourseName": "操作系统", "_Title": "大作业要求", "_Text": ""},
-            {"_Time": date(2011, 1, 11), "_CourseName": "操作系统", "_Title": "代码报告要求", "_Text": ""},
-            {"_Time": date(2011, 1, 31), "_CourseName": "操作系统", "_Title": "作业已上传", "_Text": ""},
-        ]
-    announcements.sort(key=lambda x: x["_Time"], reverse=True)
-    cardList = []
-    if announcements == []:
-        cardNoAnnounce = {
-            'description': "用户:%s" % openID,
-            'url': "",
-            'title': "暂无新公告"
-        }
-        return wechat.response_news(cardNoAnnounce)
-    elif len(announcements) < 9:
-        cardHead = {
-            'description': "",
-            'url': "",
-            'title': "最新的%d条公告" % len(announcements)
-        }
-        cardList = [cardHead] + [
-            {'title': str(anc["_Time"]) + "|" + anc["_CourseName"] + "\n" + anc["_Title"] + "\n" + anc["_Text"],
-             'url': "", 'description': ""} for anc in announcements]
-    else:
-        cardHead = {
-            'description': "",
-            'title': "最新的8条公告"
-        }
-        cardList = [cardHead] + [
-            {'title': str(anc["_Time"]) + "|" + anc["_CourseName"] + "\n" + anc["_Title"] + "\n" + anc["_Text"],
-             'description': ""} for anc in announcements[:8]]
+        else:
+            card = {
+                'description': "用户:%s" % self.openID,
+                'url': "%s/homework?openID=%s" % (_HOST_HTTP, self.openID),
+                'title': "作业"
+            }
+            return wechat.response_news([card])
 
-    return wechat.response_news(cardList)
+    def response_announce(self) -> str:
+        try:
+            isalreadybinded = database.isOpenIDBound(self.openID)  # functionA(openID)
+            if not isalreadybinded:
+                return wechat.response_text(content="您还未绑定过学号。")
+            announcements = database.get_messages_in_days(self.openID, 30)
+        except:
+            openID = "3"
+            announcements = [
+                {"_Time": date(2015, 1, 1), "_CourseName": "测试课程", "_Title": "测试案例、测试案例、测试案例、测试案例", "_Text": ""},
+                {"_Time": date(2011, 1, 1), "_CourseName": "软件工程", "_Title": "请同学们迭代一注意控制时间", "_Text": "详细内容"},
+                {"_Time": date(2011, 1, 2), "_CourseName": "软件工程", "_Title": "邮箱", "_Text": ""},
+                {"_Time": date(2011, 1, 1), "_CourseName": "工图", "_Title": "大作业要求", "_Text": ""},
+                {"_Time": date(2011, 1, 15), "_CourseName": "计网", "_Title": "大作业要求", "_Text": ""},
+                {"_Time": date(2010, 1, 1), "_CourseName": "计网", "_Title": "大作业要求", "_Text": ""},
+                {"_Time": date(2011, 1, 31), "_CourseName": "函数式语言", "_Title": "大作业要求", "_Text": ""},
+                {"_Time": date(2011, 12, 1), "_CourseName": "操作系统", "_Title": "大作业要求", "_Text": ""},
+                {"_Time": date(2011, 1, 11), "_CourseName": "操作系统", "_Title": "代码报告要求", "_Text": ""},
+                {"_Time": date(2011, 1, 31), "_CourseName": "操作系统", "_Title": "作业已上传", "_Text": ""},
+                {"_Time": date(2011, 12, 1), "_CourseName": "操作系统", "_Title": "大作业要求", "_Text": ""},
+                {"_Time": date(2011, 1, 11), "_CourseName": "操作系统", "_Title": "代码报告要求", "_Text": ""},
+                {"_Time": date(2011, 1, 31), "_CourseName": "操作系统", "_Title": "作业已上传", "_Text": ""},
+            ]
+        announcements.sort(key=lambda x: x["_Time"], reverse=True)
+        cardList = []
+        if announcements == []:
+            cardNoAnnounce = {
+                'description': "用户:%s" % self.openID,
+                'url': "",
+                'title': "暂无新公告"
+            }
+            return wechat.response_news(cardNoAnnounce)
+        elif len(announcements) < 9:
+            cardHead = {
+                'description': "",
+                'url': "",
+                'title': "最新的%d条公告" % len(announcements)
+            }
+            cardList = [cardHead] + [
+                {'title': str(anc["_Time"]) + "|" + anc["_CourseName"] + "\n" + anc["_Title"] + "\n" + anc["_Text"],
+                 'url': "", 'description': ""} for anc in announcements]
+        else:
+            cardHead = {
+                'description': "",
+                'title': "最新的8条公告"
+            }
+            cardList = [cardHead] + [
+                {'title': str(anc["_Time"]) + "|" + anc["_CourseName"] + "\n" + anc["_Title"] + "\n" + anc["_Text"],
+                 'description': ""} for anc in announcements[:8]]
 
+        return wechat.response_news(cardList)
 
-def main():
-    _get_globals()
-    app.run(host='0.0.0.0', use_debugger=True, use_reloader=False)
+    def get_response(self) -> str:
+        """
+        根据message类型以及内容确定事件类型
+        交给response处理获取并返回response
+        :param message data:
+        :return: response
+        """
+        response = ""
+        if isinstance(self.message, TextMessage):
+            logger.debug("TextMessage")
+            content = self.message.content
+            if "绑定" in content:
+                response = self.response_bind()
+            elif "作业" in content:
+                response = self.response_homework()
+            elif "公告" in content:
+                response = self.response_announce()
+            elif "解除绑定" in content:
+                response = wechat.response_text(content="此功能暂时未开发")
+            else:
+                response = wechat.response_text(content="Echo:%s" % content)
+        else:
+            return wechat.response_text(content="请输入文字信息")
+        return response
 
 
 def _get_globals():
+    # logger
+    global logger
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    logger.debug("Debug Mode On")
+    logger.info("Info On")
     # get ip
     global _MY_IP
     global _MY_PORT
@@ -248,14 +252,19 @@ def _get_globals():
     global _APP_ID
     global _APP_SECRET
     global _APP_TOKEN
-    with open(".secret.json", "r") as f:
-        secrets = json.loads(f.read())
-        logger.info("load secrets:\n%s" % secrets)
+    secrets = json.loads(open(".secret.json", "r").read())
+    logger.info("load secrets:\n%s" % secrets)
     _APP_ID = secrets['appID']
     _APP_TOKEN = secrets['Token']
     _APP_SECRET = secrets['appsecret']
+    # wechat
     global wechat
     wechat = WechatBasic(token=_APP_TOKEN, appid=_APP_ID, appsecret=_APP_SECRET)
+
+
+def main():
+    _get_globals()
+    app.run(host='0.0.0.0', use_debugger=True, use_reloader=False)
 
 
 if __name__ == '__main__':
