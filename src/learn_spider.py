@@ -5,7 +5,7 @@ from json import JSONEncoder
 
 sys.path += ["./lib", "./lib/wechat-python-sdk", "./lib/thu_learn"]
 import thu_learn
-import database
+#import database
 
 
 class Spider:
