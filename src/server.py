@@ -2,13 +2,14 @@ from flask import Flask, request, abort, render_template
 import hashlib
 import sys
 import time
-
+import logging
+import user_sys
 sys.path += ["./lib", "./lib/wechat-python-sdk"]
 from wechat_sdk import WechatBasic
 from wechat_sdk.messages import (
     TextMessage, VoiceMessage, ImageMessage, VideoMessage, LinkMessage, LocationMessage, EventMessage
 )
-import logging
+
 
 _APP_TOKEN = '***REMOVED***'
 
@@ -79,3 +80,4 @@ def response_bind(openID) -> str:
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', use_debugger=True, use_reloader=False)
+
