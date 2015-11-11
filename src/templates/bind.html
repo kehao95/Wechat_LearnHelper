@@ -33,7 +33,7 @@
 			var openID = "{{openID}}"
 			alert("here!")
 			$("#hints").text("正在验证……")
-			$.post("/bindID", {"studentID": studentID, "password": password, "openID": openID}, function(ret){
+			$.post("/bind", {"studentID": studentID, "password": password, "openID": openID}, function(ret){
 				result = ret["result"]
 				if (result == 0)
 				{

@@ -84,18 +84,15 @@ def show_homework():
     return render_template("homeworklist.html", openID=openID, homeworks=homeworks)
 
 
-@app.route('/bind')
-def bind_page():
-    return render_template("bind.html")
-
-
-@app.route('/bindID', methods=['GET', 'POST'])
+@app.route('/bind', methods=['GET', 'POST'])
 def bind_student_account():
     def bind_uid_openid(openID, studentID, password):
         if not thu_learn.login(studentID, password):
             return 1
         return database.bind_user_openID(studentID, password, openID)
 
+    if request.method == "GET":
+        return render_template("bind.html")
     if request.method == "POST":
         print("POST")
         logger.debug(request.form)
