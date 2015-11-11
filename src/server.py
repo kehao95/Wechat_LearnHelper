@@ -6,6 +6,7 @@ from datetime import date
 from itertools import groupby
 import logging
 import sys
+import json
 
 # import database
 
@@ -15,17 +16,20 @@ from timeout import (settimeout, timeout)
 from wechat_sdk import WechatBasic
 from wechat_sdk.messages import (TextMessage, VoiceMessage, ImageMessage, VideoMessage, LinkMessage, LocationMessage,
                                  EventMessage)
-#from learn_spider import *
+
+# from learn_spider import *
 
 # globals
 _MY_IP = ""
 _MY_PORT = ""
 _HOST_HTTP = ""
 _HOST_HTTPS = ""
-_APP_TOKEN = '***REMOVED***'
+_APP_TOKEN = ""
+_APP_SECRET = ""
+_APP_ID = ""
 app = Flask(__name__)
 # wechat
-wechat = WechatBasic(token=_APP_TOKEN)
+wechat = None
 # logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -225,11 +229,12 @@ def response_announce(openID) -> str:
 
 
 def main():
-    _get_ip()
+    _get_globals()
     app.run(host='0.0.0.0', use_debugger=True, use_reloader=False)
 
 
-def _get_ip():
+def _get_globals():
+    # get ip
     global _MY_IP
     global _MY_PORT
     global _HOST_HTTP
@@ -239,6 +244,18 @@ def _get_ip():
     _HOST_HTTP = "http://%s:%s" % (_MY_IP, _MY_PORT)
     _HOST_HTTPS = "https://%s:%s" % (_MY_IP, _MY_PORT)
     logger.info("local address:%s" % _HOST_HTTP)
+    # get secrets
+    global _APP_ID
+    global _APP_SECRET
+    global _APP_TOKEN
+    with open(".secret.json", "r") as f:
+        secrets = json.loads(f.read())
+        logger.info("load secrets:\n%s" % secrets)
+    _APP_ID = secrets['appID']
+    _APP_TOKEN = secrets['Token']
+    _APP_SECRET = secrets['appsecret']
+    global wechat
+    wechat = WechatBasic(token=_APP_TOKEN, appid=_APP_ID, appsecret=_APP_SECRET)
 
 
 if __name__ == '__main__':
