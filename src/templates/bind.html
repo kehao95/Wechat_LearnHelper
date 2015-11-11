@@ -1,29 +1,55 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>绑定账户</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<script type="application/x-javascript"> addEventListener("load", function() { setTimeout(hideURLbar, 0); }, false); function hideURLbar(){ window.scrollTo(0,1); } </script>
-<link rel="stylesheet" href="{{url_for("static", filename="css/style.css")}}" type="text/css" media="all" />
-<script src = "{{url_for("static", filename="scripts/jquery.js")}}"></script>
-<script src = "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-<script src= "{{url_for("static", filename="scripts/bootbox.js")}}"></script>
+	<title>绑定账户</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<script type="application/x-javascript"> addEventListener("load", function() { setTimeout(hideURLbar, 0); }, false); function hideURLbar(){ window.scrollTo(0,1); } </script>
+	<link rel="stylesheet" href="{{url_for("static", filename="css/style.css")}}" type="text/css" media="all" />
+	<script src = "{{url_for("static", filename="scripts/jquery.js")}}"></script>
+	<script src = "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+	<script src= "{{url_for("static", filename="scripts/bootbox.js")}}"></script>
 </head>
 <body>
+	<div class="container">
+		<div class="contact-form">
+			<div class="signin">
+				<form id="register" >
+					<p>学号</p>
+					<input type="text" id="studentID" class="user" value="你的学号" onfocus="this.value = '';" onblur="if (this.value == '') {this.value = 'Enter Here';}" />
+					<p>密码</p>
+					<input type="password" id="password" class="pass" value="Password" onfocus="this.value = '';" onblur="if (this.value == '') {this.value = 'Password';}" />
+					<p id="hints"></p>
+					
+				</form>
+				<button id="bindsubmit" >绑定</button>
+			</div>
+		</div>
+	</div>
+	<script type="text/javascript">
+		$("#bindsubmit").click(function(){
+			var studentID = $("#studentID").val()
+			var password = $("#password").val()
+			var openID = "{{openID}}"
+			alert("here!")
+			$("#hints").text("正在验证……")
+			$.post("/bindID", {"studentID": studentID, "password": password, "openID": openID}, function(ret){
+				result = ret["result"]
+				if (result == 0)
+				{
+					$("#hints").text("绑定成功！")
+				}
+				else if (result == 1)
+				{
+					$("#hints").text("验证失败！请检查学号和密码。")
+				}
+				else if(result == 2)
+				{
+					$("#hints").text("该学号已被绑定过！")
+				}
+			})
+		})
 
-<div class="container">
-     <div class="contact-form">
-	 <div class="signin">
-     <form id="register">
-	      <p>学号</p>
-	      <input type="text" class="user" value="你的学号" onfocus="this.value = '';" onblur="if (this.value == '') {this.value = 'Enter Here';}" />
-		  <p>密码</p>
-		  <input type="password" class="pass" value="Password" onfocus="this.value = '';" onblur="if (this.value == '') {this.value = 'Password';}" />
-          <input type="submit" value="绑定" />
-	 </form>
-	 </div>
-	 </div> 
-</div>
+	</script>
 </body>
 </html>
