@@ -1,4 +1,4 @@
-from flask import Flask, request, abort, render_template
+from flask import Flask, request, abort, render_template, json, jsonify
 import hashlib
 import sys
 import time
@@ -44,7 +44,26 @@ def listener():
 
 @app.route('/bind')
 def bind_student_account():
-    return render_template("bind.html")
+    openID = request.args.get('openID')
+    print(openID)
+    return render_template("bind.html", openID=openID)
+
+
+@app.route('/bindID', methods=['GET', 'POST'])
+def bind_st_account():
+    if request.method == "POST":
+        print("POST")
+        print(request.form)
+
+    openID = request.form["openID"]
+    studentID = request.form["studentID"]
+    password = request.form["password"]
+
+#    print(openID)
+#    print(studentID)
+#    print(password)
+    result = 0    #functionA(openID, studentID, password)
+    return jsonify({"result": result})
 
 
 def handle_request(data):
@@ -68,13 +87,18 @@ def handle_request(data):
 
 
 def response_bind(openID) -> str:
-    card = {
-        'description': "用户:%s" % openID,
-        'picurl': "http://59.66.139.26:5000/bind",
-        'url': "http://59.66.139.26:5000/bind",
-        'title': "绑定"
-    }
-    return wechat.response_news([card])
+    isalreadybinded = False  #functionA()
+
+    if isalreadybinded:
+        return wechat.response_text(content="您已经绑定过学号了。")
+    else:
+        card = {
+            'description': "用户:%s" % openID,
+            'picurl': "http://59.66.139.196:5000/bind?openID=%s"%openID,
+            'url': "http://59.66.139.196:5000/bind?openID=%s"%openID,
+            'title': "绑定"
+        }
+        return wechat.response_news([card])
 
 
 if __name__ == '__main__':
