@@ -53,18 +53,27 @@ def main_listener():
     else:  # 主要功能
         logger.info("post")
         data = request.get_data().decode('utf-8')
-        try:
-            with timeout(5):
-                handler = Handler(data)
-                response = handler.get_response()
-        except TimeoutError:
-            response = ""
+#        try:
+#            with timeout(5):
+#                handler = Handler(data)
+#                response = handler.get_response()
+#        except TimeoutError:
+#            response = ""
+        handler = Handler(data)
+        response = handler.get_response()
         return response
 
 
 @app.route('/homework')
 def show_homework():
     def fit_homework_to_html(homeworkFromDB):
+        count = len(homeworkFromDB)
+        i = 0
+        while i < count:
+            (homeworkFromDB[i])["id"] = str(i)
+            i += 1
+        for hw in homeworkFromDB:
+            hw["_Text"] = (hw["_Text"]).replace("\r\n", "</p><p>")
         result = []
         result = [{"endDate": key, "homeworkGroup": list(group)} for key, group in
                   groupby(homeworkFromDB, lambda x: x["_EndTime"])]
@@ -75,11 +84,13 @@ def show_homework():
     print(openID)
     # homeworkFromDB = database.get_works_after_today(openID)
     homeworkFromDB = [
-        {"_EndTime": date(1999, 5, 4), "_CourseName": "软件工程", "_Title": "迭代一", "_Finished": True},
-        {"_EndTime": date(1999, 5, 4), "_CourseName": "操作系统", "_Title": "迭代N", "_Finished": True},
-        {"_EndTime": date(1998, 5, 4), "_CourseName": "计算机", "_Title": "Chap2", "_Finished": False},
-        {"_EndTime": date(1999, 5, 14), "_CourseName": "Haskell", "_Title": "第六次", "_Finished": True},
-        {"_EndTime": date(1999, 6, 4), "_CourseName": "软件工程", "_Title": "迭代233", "_Finished": False},
+        {'_EndTime':date(2015,11,9), '_CourseName':'软件工程', '_Title':'t1', '_Text':'FFFFFFFFFFFFFFFFF', '_Finished':True},
+        {'_EndTime':date(2015,11,9), '_CourseName':'计算机', '_Title':'t2', '_Text':'阿斯兰贷款', '_Finished':True},
+        {'_EndTime':date(2015,11,19), '_CourseName':'函数式语言设计', '_Title':'t13', '_Text':'阿斯顿发爱上发啊爱上爱上爱上的', '_Finished':True},
+        {'_EndTime':date(2015,11,19), '_CourseName':'网络体系结构', '_Title':'t14', '_Text':'二位人头问天网儿童舞额娃儿', '_Finished':False},
+        {'_EndTime':date(2015,11,19), '_CourseName':'操作系统', '_Title':'t15', '_Text':'瓦尔特娃儿为为热人我认为', '_Finished':True},
+        {'_EndTime':date(2015,11,29), '_CourseName':'软件工程', '_Title':'t16', '_Text':'星创v被削出小型车vv本程序必须', '_Finished':True},
+        {'_EndTime':date(2015,11,29), '_CourseName':'操作系统', '_Title':'t\xa0\xa017', '_Text':'需递归\r\n送的是的 巅峰', '_Finished':False}
     ]  # functionA(openID)
     homeworks = fit_homework_to_html(homeworkFromDB)
 
@@ -88,23 +99,24 @@ def show_homework():
 
 @app.route('/bind', methods=['GET', 'POST'])
 def bind_student_account():
-    def bind_uid_openid(openID, studentID, password):
-        if not thu_learn.login(studentID, password):
-            return 1
-        return database.bind_user_openID(studentID, password, openID)
+#    def bind_uid_openid(openID, studentID, password):
+#        if not thu_learn.login(studentID, password):
+#            return 1
+#        return database.bind_user_openID(studentID, password, openID)
 
     if request.method == "GET":
-        return render_template("bind.html")
+        openID = request.args.get('openID')
+        return render_template("bind.html", openID=openID)
     if request.method == "POST":
         print("POST")
         logger.debug(request.form)
     openID = request.form["openID"]
     studentID = request.form["studentID"]
     password = request.form["password"]
-    result = bind_uid_openid(openID, studentID, password)  # functionA(openID, studentID, password)
-    if result == 0:
-        spider = Spider(openID, studentID, password)
-        database.store(spider.get_dict())
+    result = 0  #bind_uid_openid(openID, studentID, password)
+#    if result == 0:
+#        spider = Spider(openID, studentID, password)
+#        database.store(spider.get_dict())
     return jsonify({"result": result})
 
 

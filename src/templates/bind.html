@@ -31,7 +31,7 @@
 			var studentID = $("#studentID").val()
 			var password = $("#password").val()
 			var openID = "{{openID}}"
-			alert("here!")
+
 			$("#hints").text("正在验证……")
 			$.post("/bind", {"studentID": studentID, "password": password, "openID": openID}, function(ret){
 				result = ret["result"]
@@ -49,6 +49,17 @@
 				}
 			})
 		})
+		var ua = navigator.userAgent.toLowerCase();
+		var isAndroid = ua.indexOf("android") > -1; //&& ua.indexOf("mobile");
+		if(isAndroid) {
+			var form = document.getElementById("register");
+			form.addEventListener("focus", function( event ) {
+			  	$('.contact-form').css('margin','-70px auto');
+			}, true);
+			form.addEventListener("blur", function( event ) {
+			  	$('.contact-form').css('margin','26% auto');
+			}, true);
+		}
 
 	</script>
 </body>
