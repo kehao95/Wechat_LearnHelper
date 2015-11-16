@@ -7,8 +7,8 @@ from itertools import groupby
 import logging
 import sys
 import json
+import requests
 
-# import database
 
 sys.path += ["./lib", "./lib/wechat-python-sdk"]
 import getip
@@ -16,6 +16,8 @@ from timeout import (settimeout, timeout)
 from wechat_sdk import WechatBasic
 from wechat_sdk.messages import (TextMessage, VoiceMessage, ImageMessage, VideoMessage, LinkMessage, LocationMessage,
                                  EventMessage)
+from db import Database
+import thu_learn
 
 # from learn_spider import *
 
@@ -27,9 +29,11 @@ _HOST_HTTPS = ""
 _APP_TOKEN = ""
 _APP_SECRET = ""
 _APP_ID = ""
+_APP_BUTTONS = ""
 app = Flask(__name__)
 wechat = None
 logger = None
+database = None
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -80,16 +84,18 @@ def show_homework():
 
     openID = request.args.get('openID')
     print(openID)
-    # homeworkFromDB = database.get_works_after_today(openID)
-    homeworkFromDB = [
-        {'_EndTime':date(2015,11,9), '_CourseName':'软件工程', '_Title':'t1', '_Text':'FFFFFFFFFFFFFFFFF', '_Finished':True},
-        {'_EndTime':date(2015,11,9), '_CourseName':'计算机', '_Title':'t2', '_Text':'阿斯兰贷款', '_Finished':True},
-        {'_EndTime':date(2015,11,19), '_CourseName':'函数式语言设计', '_Title':'t13', '_Text':'阿斯顿发爱上发啊爱上爱上爱上的', '_Finished':True},
-        {'_EndTime':date(2015,11,19), '_CourseName':'网络体系结构', '_Title':'t14', '_Text':'二位人头问天网儿童舞额娃儿', '_Finished':False},
-        {'_EndTime':date(2015,11,19), '_CourseName':'操作系统', '_Title':'t15', '_Text':'瓦尔特娃儿为为热人我认为', '_Finished':True},
-        {'_EndTime':date(2015,11,29), '_CourseName':'软件工程', '_Title':'t16', '_Text':'星创v被削出小型车vv本程序必须', '_Finished':True},
-        {'_EndTime':date(2015,11,29), '_CourseName':'操作系统', '_Title':'t\xa0\xa017', '_Text':'需递归\r\n送的是的 巅峰', '_Finished':False}
-    ]  # functionA(openID)
+
+    homeworkFromDB = database.get_works_after_today(openID)
+
+    #     homeworkFromDB = [
+    #         {'_EndTime':date(2015,11,9), '_CourseName':'软件工程', '_Title':'t1', '_Text':'FFFFFFFFFFFFFFFFF', '_Finished':True},
+    #         {'_EndTime':date(2015,11,9), '_CourseName':'计算机', '_Title':'t2', '_Text':'阿斯兰贷款', '_Finished':True},
+    #         {'_EndTime':date(2015,11,19), '_CourseName':'函数式语言设计', '_Title':'t13', '_Text':'阿斯顿发爱上发啊爱上爱上爱上的', '_Finished':True},
+    #         {'_EndTime':date(2015,11,19), '_CourseName':'网络体系结构', '_Title':'t14', '_Text':'二位人头问天网儿童舞额娃儿', '_Finished':False},
+    #         {'_EndTime':date(2015,11,19), '_CourseName':'操作系统', '_Title':'t15', '_Text':'瓦尔特娃儿为为热人我认为', '_Finished':True},
+    #         {'_EndTime':date(2015,11,29), '_CourseName':'软件工程', '_Title':'t16', '_Text':'星创v被削出小型车vv本程序必须', '_Finished':True},
+    #         {'_EndTime':date(2015,11,29), '_CourseName':'操作系统', '_Title':'t\xa0\xa017', '_Text':'需递归\r\n送的是的 巅峰', '_Finished':False}
+    #     ]  # functionA(openID)
     homeworks = fit_homework_to_html(homeworkFromDB)
 
     return render_template("homeworklist.html", openID=openID, homeworks=homeworks)
@@ -97,25 +103,25 @@ def show_homework():
 
 @app.route('/bind', methods=['GET', 'POST'])
 def bind_student_account():
-#    def bind_uid_openid(openID, studentID, password):
-#        if not thu_learn.login(studentID, password):
-#            return 1
-#        return database.bind_user_openID(studentID, password, openID)
+   def bind_uid_openid(openID, studentID, password):
+       if not thu_learn.login(studentID, password):
+           return 1
+       return database.bind_user_openID(studentID, password, openID)
 
-    if request.method == "GET":
-        openID = request.args.get('openID')
-        return render_template("bind.html", openID=openID)
-    if request.method == "POST":
-        print("POST")
-        logger.debug(request.form)
-    openID = request.form["openID"]
-    studentID = request.form["studentID"]
-    password = request.form["password"]
-    result = 0  #bind_uid_openid(openID, studentID, password)
+   if request.method == "GET":
+       openID = request.args.get('openID')
+       return render_template("bind.html", openID=openID)
+   if request.method == "POST":
+       print("POST")
+       logger.debug(request.form)
+   openID = request.form["openID"]
+   studentID = request.form["studentID"]
+   password = request.form["password"]
+   result = bind_uid_openid(openID, studentID, password)
 #    if result == 0:
 #        spider = Spider(openID, studentID, password)
 #        database.store(spider.get_dict())
-    return jsonify({"result": result})
+   return jsonify({"result": result})
 
 
 class Handler:
@@ -149,7 +155,7 @@ class Handler:
 
     def response_homework(self) -> str:
         try:
-            isalreadybinded = database.isOpenIDBound(self.openID)  # functionA(openID)
+            isalreadybinded = database.isOpenIDBound(self.openID)
         except:
             isalreadybinded = True
         if not isalreadybinded:
@@ -163,11 +169,14 @@ class Handler:
             return wechat.response_news([card])
 
     def response_announce(self) -> str:
+        logger.debug("fake messages")
+        logger.debug(self.openID)
+        isalreadybinded = database.isOpenIDBound(self.openID)
+        if not isalreadybinded:
+            return wechat.response_text(content="您还未绑定过学号。")
+        announcements = database.get_messages_in_days(self.openID, 30)
         try:
-            isalreadybinded = database.isOpenIDBound(self.openID)  # functionA(openID)
-            if not isalreadybinded:
-                return wechat.response_text(content="您还未绑定过学号。")
-            announcements = database.get_messages_in_days(self.openID, 30)
+            pass
         except:
             openID = "3"
             announcements = [
@@ -243,7 +252,7 @@ class Handler:
 def _get_globals():
     # logger
     global logger
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger(__name__)
     logger.debug("Debug Mode On")
     logger.info("Info On")
@@ -257,25 +266,41 @@ def _get_globals():
     _HOST_HTTP = "http://%s:%s" % (_MY_IP, _MY_PORT)
     _HOST_HTTPS = "https://%s:%s" % (_MY_IP, _MY_PORT)
     logger.info("local address:%s" % _HOST_HTTP)
-    # get secrets
+    # get app secrets
     global _APP_ID
     global _APP_SECRET
     global _APP_TOKEN
-
-    print((open("1_1.json", "r").read()).replace("锘縶", "{"))
-    secrets = json.loads((open(".secret.json", "r").read()).replace("锘縶", "{"))
-
+    global _APP_BUTTONS
+    secrets = json.loads(open(".secret.json", "r").read())
     logger.info("load secrets:\n%s" % secrets)
     _APP_ID = secrets['appID']
     _APP_TOKEN = secrets['Token']
     _APP_SECRET = secrets['appsecret']
+    _APP_BUTTONS = secrets['buttons']
     # wechat
     global wechat
     wechat = WechatBasic(token=_APP_TOKEN, appid=_APP_ID, appsecret=_APP_SECRET)
+    #database
+    global database
+    database = Database(secrets['database']['username'],secrets['database']['password'])
+
+def _create_buttons():
+    # delete
+    url = "https://api.weixin.qq.com/cgi-bin/menu/delete?access_token=%s"%_APP_TOKEN
+    respond = requests.get(url)
+    logger.info("Delete Button: %s" % respond.content)
+    # add
+    data = wechat.create_menu(_APP_BUTTONS)
+    respond = requests.post("https://api.weixin.qq.com/cgi-bin/menu/create?access_token=%s" % _APP_TOKEN, data)
+    logger.info("Add Button: %s" % respond.content)
 
 
 def main():
     _get_globals()
+    try:
+        _create_buttons()
+    except:
+        pass
     app.run(host='0.0.0.0', use_debugger=True, use_reloader=False)
 
 
