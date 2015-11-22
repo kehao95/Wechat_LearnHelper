@@ -7,6 +7,7 @@ from itertools import groupby
 import logging
 import sys
 import json
+import requests
 
 # import database
 
@@ -27,6 +28,7 @@ _HOST_HTTPS = ""
 _APP_TOKEN = ""
 _APP_SECRET = ""
 _APP_ID = ""
+_APP_BUTTONS = ""
 app = Flask(__name__)
 wechat = None
 logger = None
@@ -257,25 +259,39 @@ def _get_globals():
     _HOST_HTTP = "http://%s:%s" % (_MY_IP, _MY_PORT)
     _HOST_HTTPS = "https://%s:%s" % (_MY_IP, _MY_PORT)
     logger.info("local address:%s" % _HOST_HTTP)
-    # get secrets
+    # get app secrets
     global _APP_ID
     global _APP_SECRET
     global _APP_TOKEN
-
-    print((open("1_1.json", "r").read()).replace("锘縶", "{"))
-    secrets = json.loads((open(".secret.json", "r").read()).replace("锘縶", "{"))
-
+    global _APP_BUTTONS
+    secrets = json.loads(open(".secret.json", "r").read())
     logger.info("load secrets:\n%s" % secrets)
     _APP_ID = secrets['appID']
     _APP_TOKEN = secrets['Token']
     _APP_SECRET = secrets['appsecret']
+    _APP_BUTTONS = secrets['buttons']
     # wechat
     global wechat
     wechat = WechatBasic(token=_APP_TOKEN, appid=_APP_ID, appsecret=_APP_SECRET)
 
 
+def _create_buttons():
+    # delete
+    url = "https://api.weixin.qq.com/cgi-bin/menu/delete?access_token=%s"%_APP_TOKEN
+    respond = requests.get(url)
+    logger.info("Delete Button: %s" % respond.content)
+    # add
+    data = wechat.create_menu(_APP_BUTTONS)
+    respond = requests.post("https://api.weixin.qq.com/cgi-bin/menu/create?access_token=%s" % _APP_TOKEN, data)
+    logger.info("Add Button: %s" % respond.content)
+
+
 def main():
     _get_globals()
+    try:
+        _create_buttons()
+    except:
+        pass
     app.run(host='0.0.0.0', use_debugger=True, use_reloader=False)
 
 
