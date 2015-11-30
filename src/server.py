@@ -16,7 +16,7 @@ from timeout import (settimeout, timeout)
 from wechat_sdk import WechatBasic
 from wechat_sdk.messages import (TextMessage, VoiceMessage, ImageMessage, VideoMessage, LinkMessage, LocationMessage,
                                  EventMessage)
-import database
+from db import Database
 import thu_learn
 
 # from learn_spider import *
@@ -33,6 +33,8 @@ _APP_BUTTONS = ""
 app = Flask(__name__)
 wechat = None
 logger = None
+
+database = None
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -83,7 +85,6 @@ def show_homework():
 
     openID = request.args.get('openID')
     print(openID)
-
     homeworkFromDB = database.get_works_after_today(openID)
 
     #     homeworkFromDB = [
@@ -154,7 +155,7 @@ class Handler:
 
     def response_homework(self) -> str:
         try:
-            isalreadybinded = database.isOpenIDBound(self.openID)
+            isalreadybinded = database.isOpenIDBound(self.openID)  # functionA(openID)
         except:
             isalreadybinded = True
         if not isalreadybinded:
@@ -168,14 +169,14 @@ class Handler:
             return wechat.response_news([card])
 
     def response_announce(self) -> str:
+
         logger.debug("fake messages")
         logger.debug(self.openID)
-        isalreadybinded = database.isOpenIDBound(self.openID)
-        if not isalreadybinded:
-            return wechat.response_text(content="您还未绑定过学号。")
-        announcements = database.get_messages_in_days(self.openID, 30)
         try:
-            pass
+            isalreadybinded = database.isOpenIDBound(self.openID)  # functionA(openID)
+            if not isalreadybinded:
+                return wechat.response_text(content="您还未绑定过学号。")
+            announcements = database.get_messages_in_days(self.openID, 30)
         except:
             openID = "3"
             announcements = [
@@ -279,6 +280,19 @@ def _get_globals():
     # wechat
     global wechat
     wechat = WechatBasic(token=_APP_TOKEN, appid=_APP_ID, appsecret=_APP_SECRET)
+
+    global database
+    database = Database(secrets['database']['username'],secrets['database']['password'])
+
+def _create_buttons():
+    # delete
+    url = "https://api.weixin.qq.com/cgi-bin/menu/delete?access_token=%s"%_APP_TOKEN
+    respond = requests.get(url)
+    logger.info("Delete Button: %s" % respond.content)
+    # add
+    data = wechat.create_menu(_APP_BUTTONS)
+    respond = requests.post("https://api.weixin.qq.com/cgi-bin/menu/create?access_token=%s" % _APP_TOKEN, data)
+    logger.info("Add Button: %s" % respond.content)
 
 
 def _create_buttons():
