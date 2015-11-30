@@ -58,3 +58,4 @@ target/
 .idea/
 
 .secret.json
+secret.json
