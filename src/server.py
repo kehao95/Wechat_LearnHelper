@@ -7,6 +7,7 @@ from itertools import groupby
 import logging
 import sys
 import json
+import time
 import requests
 
 
@@ -16,8 +17,8 @@ from timeout import (settimeout, timeout)
 from wechat_sdk import WechatBasic
 from wechat_sdk.messages import (TextMessage, VoiceMessage, ImageMessage, VideoMessage, LinkMessage, LocationMessage,
                                  EventMessage)
-from db import Database
-import thu_learn
+
+
 
 # from learn_spider import *
 
@@ -35,6 +36,7 @@ wechat = None
 logger = None
 
 database = None
+
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -96,6 +98,7 @@ def show_homework():
     #         {'_EndTime':date(2015,11,29), '_CourseName':'软件工程', '_Title':'t16', '_Text':'星创v被削出小型车vv本程序必须', '_Finished':True},
     #         {'_EndTime':date(2015,11,29), '_CourseName':'操作系统', '_Title':'t\xa0\xa017', '_Text':'需递归\r\n送的是的 巅峰', '_Finished':False}
     #     ]  # functionA(openID)
+
     homeworks = fit_homework_to_html(homeworkFromDB)
 
     return render_template("homeworklist.html", openID=openID, homeworks=homeworks)
@@ -103,25 +106,20 @@ def show_homework():
 
 @app.route('/bind', methods=['GET', 'POST'])
 def bind_student_account():
-   def bind_uid_openid(openID, studentID, password):
-       if not thu_learn.login(studentID, password):
-           return 1
-       return database.bind_user_openID(studentID, password, openID)
-
-   if request.method == "GET":
-       openID = request.args.get('openID')
-       return render_template("bind.html", openID=openID)
-   if request.method == "POST":
-       print("POST")
-       logger.debug(request.form)
-   openID = request.form["openID"]
-   studentID = request.form["studentID"]
-   password = request.form["password"]
-   result = bind_uid_openid(openID, studentID, password)
+    if request.method == "GET":
+        openID = request.args.get('openID')
+        return render_template("bind.html", openID=openID)
+    if request.method == "POST":
+        print("POST")
+        logger.debug(request.form)
+    openID = request.form["openID"]
+    studentID = request.form["studentID"]
+    password = request.form["password"]
+    result = 0  #bind_uid_openid(openID, studentID, password)
 #    if result == 0:
 #        spider = Spider(openID, studentID, password)
 #        database.store(spider.get_dict())
-   return jsonify({"result": result})
+    return jsonify({"result": result})
 
 
 class Handler:
@@ -169,9 +167,6 @@ class Handler:
             return wechat.response_news([card])
 
     def response_announce(self) -> str:
-
-        logger.debug("fake messages")
-        logger.debug(self.openID)
         try:
             isalreadybinded = database.isOpenIDBound(self.openID)  # functionA(openID)
             if not isalreadybinded:
@@ -244,7 +239,24 @@ class Handler:
                 response = wechat.response_text(content="此功能暂时未开发")
             else:
                 response = wechat.response_text(content="Echo:%s" % content)
-        else:
+        elif isinstance(self.message, EventMessage):
+            logger.info("EventMessage")
+            type = self.message.type
+            key = self.message.key
+            if type == "click":
+                if key == "BIND":
+                    response = self.response_bind()
+                elif key == "ANNOUNCEMENT":
+                    response = self.response_announce()
+                elif key == "HOMEWORK":
+                    response = self.response_homework()
+                elif key == "UNBIND":
+                    response = wechat.response_text(content="此功能暂时未开发")
+                else:
+                    pass
+            else:
+                pass
+        else :
             return wechat.response_text(content="请输入文字信息")
         return response
 
@@ -280,30 +292,74 @@ def _get_globals():
     # wechat
     global wechat
     wechat = WechatBasic(token=_APP_TOKEN, appid=_APP_ID, appsecret=_APP_SECRET)
-
+    # database
     global database
-    database = Database(secrets['database']['username'],secrets['database']['password'])
-
-def _create_buttons():
-    # delete
-    url = "https://api.weixin.qq.com/cgi-bin/menu/delete?access_token=%s"%_APP_TOKEN
-    respond = requests.get(url)
-    logger.info("Delete Button: %s" % respond.content)
-    # add
-    data = wechat.create_menu(_APP_BUTTONS)
-    respond = requests.post("https://api.weixin.qq.com/cgi-bin/menu/create?access_token=%s" % _APP_TOKEN, data)
-    logger.info("Add Button: %s" % respond.content)
+    # database = Database(secrets['database']['username'],secrets['database']['password'])
 
 
 def _create_buttons():
     # delete
-    url = "https://api.weixin.qq.com/cgi-bin/menu/delete?access_token=%s"%_APP_TOKEN
-    respond = requests.get(url)
-    logger.info("Delete Button: %s" % respond.content)
+    respond = wechat.delete_menu()
+    logger.info("Delete Button: %s" % respond)
     # add
-    data = wechat.create_menu(_APP_BUTTONS)
-    respond = requests.post("https://api.weixin.qq.com/cgi-bin/menu/create?access_token=%s" % _APP_TOKEN, data)
-    logger.info("Add Button: %s" % respond.content)
+    respond = wechat.create_menu(_APP_BUTTONS)
+    logger.debug("Add Button: %s" % respond)
+
+
+def send_success_message(openID, studentnumber):
+    pushdata = {
+        "studentnumber": {
+            "value": studentnumber,
+            "color": "#ff0000"
+        }
+    }
+    wechat.send_template_message(user_id=openID, template_id="pc5HSXZ1Gmn5ToG9QEgmEQ1I1JBtypMsoOFheuvDk-o", data=pushdata, url="")
+
+
+def send_new_homework(openIDs, homework):
+    pushdata = {
+        "coursename": {
+            "value": homework["_CourseName"],
+            "color": "#00ff00"
+        },
+        "title": {
+            "value": homework["_Title"],
+            "color": "#00ff00"
+        },
+        "endtime": {
+            "value": str(homework["_EndTime"]),
+            "color": "#00ff00"
+        },
+        "text": {
+            "value": homework["_Text"],
+            "color": "#00ff00"
+        }
+    }
+    for user_id in openIDs:
+        wechat.send_template_message(user_id=user_id, template_id="UIaXu9hM3wBra4eEdpqEhVDk3I8K7BtqWoXsq38bQlY", data=pushdata, url="")
+
+
+def send_new_announcement(openIDs, annoucement):
+    pushdata = {
+        "coursename": {
+            "value": annoucement["_CourseName"],
+            "color": "#00ff00"
+        },
+        "title": {
+            "value": annoucement["_Title"],
+            "color": "#00ff00"
+        },
+        "time": {
+            "value": str(annoucement["_Time"]),
+            "color": "#00ff00"
+        },
+        "text": {
+            "value": annoucement["_Text"],
+            "color": "#00ff00"
+        }
+    }
+    for user_id in openIDs:
+        wechat.send_template_message(user_id=user_id, template_id="WxE0DOK_MyKUGn_vGnekfqUuDyElCWCEYFI4eSDbmu8", data=pushdata, url="")
 
 
 def main():
