@@ -51,11 +51,11 @@ async def update_database():
     logger.debug(len(messages_to_append))
 
 
-    courses_dicts = [course.__dict__ for course in courses_to_append]
+    courses_dicts = [course.dict for course in courses_to_append]
     messages_dicts = list(await asyncio.gather(*[message.dict for message in messages_to_append]))
     works_dicts = list(await asyncio.gather(*[work.dict for work in works_to_append]))
     completion = [(work.user.username, work.id) for work in works if work.completion]
-    user_course = [(course.user.username, courses.id) for course in courses]
+    user_course = [(course.user.username, course.id) for course in courses]
     print("end")
     await asyncio.sleep(100)
 
