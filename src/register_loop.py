@@ -83,6 +83,6 @@ if __name__ == "__main__":
     with open(".secret.json", 'r') as f:
         secret = json.loads(f.read())
         database = db.Database(secret['database']['username'], secret['database']['password'],
-                               secret['database']['key'])
+                               secret['database']['key'], secret['database']['host'])
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())

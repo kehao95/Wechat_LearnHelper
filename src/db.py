@@ -45,8 +45,8 @@ class Database:
     courseNameDict = {}
     
 
-    def __init__(self, username, password,salt='salt'):
-        self.cnx = pymysql.connect(user=username, db= self.S_DATABASE_NAME, host='127.0.0.1', passwd=password,charset="utf8")
+    def __init__(self, username, password,salt='salt',address='127.0.0.1'):
+        self.cnx = pymysql.connect(user=username, db= self.S_DATABASE_NAME, host=address, passwd=password,charset="utf8")
         self.courseNameLoad()
         self.key = salt
 
