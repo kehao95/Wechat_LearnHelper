@@ -6,12 +6,13 @@ from decimal import Decimal
 from datetime import datetime, date, timedelta
 import pymysql
 
+
 class Database:
     S_GET_DATA_BY_OPENID = "SELECT UID,AES_DECRYPT(UPd,%s) FROM UserInfo WHERE OpenID = %s"
     S_GET_DATA_BY_UID = "SELECT UID,AES_DECRYPT(UPd,%s) FROM UserInfo WHERE UID = %s"
     S_GET_CID_BY_UID = "SELECT CID FROM UserCourse WHERE UID = %s"
     S_GET_USERS_BY_CID = "SELECT UserInfo.UID,AES_DECRYPT(UserInfo.UPd,%s),UserInfo.OpenID FROM UserCourse,UserInfo WHERE UserInfo.UID=UserCourse.UID AND UserCourse.CID=%s"
-    S_GET_A_USER_BY_CID = "SELECT UserInfo.UID,AES_DECRYPT(UserInfo.UPd,%s),UserInfo.OpenID FROM UserCourse,UserInfo WHERE UserInfo.UID=CourseName.UID AND CourseName.CID=%s"
+    S_GET_A_USER_BY_CID = "SELECT UserInfo.UID,AES_DECRYPT(UserInfo.UPd,%s),UserInfo.OpenID FROM CourseName,UserInfo WHERE UserInfo.UID=CourseName.UID AND CourseName.CID=%s"
     S_GET_MSG_BY_CID = "SELECT CID,Time,Title,Text FROM Message WHERE CID = %s"
     S_GET_MSG_IN_DAYS = "SELECT CID,Time,Title,Text FROM Message WHERE CID = %s AND DATE_SUB(CURDATE(),INTERVAL %s DAY) <= date(Time)"
     # S_GET_WORK_BY_CID = "SELECT CID,EndTime,Title,Text WHERE CID = %s"
@@ -19,11 +20,11 @@ class Database:
     S_GET_NAME_FROM_CID = "SELECT Name FROM CourseName WHERE CID = %s"
     S_GET_WORK_AFTER = "SELECT CID,EndTime,Title,WID,Text FROM Work WHERE CID = %s AND EndTime > DATE(%s)"
     S_GET_ALL_USER = "SELECT UID, AES_DECRYPT(UPd,%s), OpenID FROM UserInfo"
-    S_GET_ALL_UID = "SELECT UID FROM UserInfo" 
+    S_GET_ALL_UID = "SELECT UID FROM UserInfo"
     S_GET_ALL_MID = "SELECT MID FROM Message"
     S_GET_ALL_CID = "SELECT CID FROM CourseName"
     S_GET_ALL_WID = "SELECT WID FROM Work"
-    
+
     S_IS_WORK_FINISHED = "SELECT WID FROM WorkFinished WHERE UID = %s AND WID = %s"
 
     S_INSERT_WORKFINISHED = "INSERT IGNORE INTO WorkFinished (UID,WID) VALUES(%s,%s)"
@@ -40,17 +41,18 @@ class Database:
 
     S_DATABASE_NAME = 'thu_learn'
     cnx = None
-    key = "salt"
+    key = "salt"    #AES加密用到的密钥
 
-    courseNameDict = {}
-    
+    courseNameDict = {} #缓存的课程名称【待处理】
 
-    def __init__(self, username, password,salt='salt',address='127.0.0.1'):
-        self.cnx = pymysql.connect(user=username, db= self.S_DATABASE_NAME, host=address, passwd=password,charset="utf8")
+    #mysql用户名，mysql密码，密钥，主机地址
+    def __init__(self, username, password, salt='salt', address='127.0.0.1'):
+        self.cnx = pymysql.connect(user=username, db=self.S_DATABASE_NAME, host=address, passwd=password,
+                                   charset="utf8")
         self.courseNameLoad()
         self.key = salt
 
-
+    #特殊函数，在已有的thu_learn数据库中建立表单
     def build_database(self):
         S_SET_UTF8 = "alter database %s character set utf8 collate utf8_unicode_ci"
 
@@ -69,78 +71,88 @@ class Database:
         cur.execute(self.S_BUILD_USERINFO)
         cur.execute(self.S_BUILD_USERCOURSE)
         cur.execute(self.S_BUILD_WORKFINISHED)
-        #cur.execute(self.S_SET_UTF8, (self.S_DATABASE_NAME,))
+        # cur.execute(self.S_SET_UTF8, (self.S_DATABASE_NAME,))
         self.cnx.commit()
 
-    #build_database()
+        # build_database()
 
+    #####统一user类型 {'username': ,'password': ,'openid': }
 
-#####user {'username': ,'password': ,'openid': }
+    #将数据库返回的user信息转为传回的user-dict（主要对password解码。数据库blob形式在python中是b'str'# ）
+    def build_user_dict(self, uid, upd, openid):
+        return {'username': uid, 'password': upd.decode('utf8'), 'openid': openid}
 
-    def build_user_dict(self,uid,upd,openid):
-        return {'username':uid,'password':upd.decode('utf8'),'openid':openid}
-
+    #从openid获取 （用户名，密码）
     def get_data_from_openid(self, openID):
         cur = self.cnx.cursor()
         cur.execute(self.S_GET_DATA_BY_OPENID, (self.key, openID))
         for i in cur:
             return i
 
+    #从openid获取是否已经被绑定
     def isOpenIDBound(self, openID):
         return self.get_data_from_openid(openID) != None
 
+    #初始化调用，获取课程名称
     def courseNameLoad(self):
         cur = self.cnx.cursor()
         cur.execute(self.S_GET_COURSENAME)
         for cid, name in cur:
             self.courseNameDict[cid] = name
 
-
+    #绑定openid和uid以及upd
     def bind_user_openID(self, uid, upd, openID):
         cur = self.cnx.cursor()
-        cur.execute(self.S_GET_DATA_BY_UID, (self.key,uid))
+        cur.execute(self.S_GET_DATA_BY_UID, (self.key, uid))
         if (cur.rowcount != 0):
-            return 2
+            return 2    #username used
         cur.execute(self.S_INSERT_USERINFO, (uid, upd, self.key, openID))
         self.cnx.commit()
-        return 1 - cur.rowcount  # 0:success  1:failure
+        return 1 - cur.rowcount  # 0:success  1:database failure
 
+    #修改密码。不会检验原来的密码
     def change_password(self, openID, upd):
         cur = self.cnx.cursor()
-        cur.execute(self.S_CHANGE_PSW_BY_OPENID, (upd, self.key,openID))
+        cur.execute(self.S_CHANGE_PSW_BY_OPENID, (upd, self.key, openID))
         self.cnx.commit()
-        if(cur.rowcount != 0):
-            return 0
-        return 1
+        if (cur.rowcount != 0):
+            return 0    #success
+        return 1        #failure
 
+    #删除一条openid与userid的绑定信息
     def unbind_user_openID(self, openID):
         cur = self.cnx.cursor()
-        cur.execute(self.S_DELETE_USER,(openID,))
+        cur.execute(self.S_DELETE_USER, (openID,))
         self.cnx.commit()
 
+    #全部公告id的list
     def get_all_messages(self):
-        ret=[]
+        ret = []
         cur = self.cnx.cursor()
         cur.execute(self.S_GET_ALL_MID)
         for mid in cur:
             ret.append(mid)
         return ret
 
+    #全部作业id的list
     def get_all_works(self):
-        ret=[]
+        ret = []
         cur = self.cnx.cursor()
         cur.execute(self.S_GET_ALL_WID)
         for mid in cur:
             ret.append(mid)
         return ret
-        
+
+    #0参数：全部课程id的list
+    #1个int识别为userid, 返回user的课程id的list
+    #1个user-dict，userid为user['username']，返回user的课程id的list
     def get_all_courses(self, user=-1):
         ret = []
         cur = self.cnx.cursor()
-        if(user == -1):
+        if (user == -1):
             cur.execute(self.S_GET_ALL_CID)
         else:
-            if isinstance(user,Int):
+            if isinstance(user, int):
                 uid = user
             else:
                 uid = user['username']
@@ -149,58 +161,69 @@ class Database:
             ret.append(cid)
         return ret
 
+    #0参数：全username的list
+    #1参数：对courseid取选课的username的list
     def get_all_users(self, courseid=-1):
         ret = []
         cur = self.cnx.cursor()
-        if(courseid == -1):
+        if (courseid == -1):
             cur.execute(self.S_GET_ALL_USER, (self.key,))
         else:
-            cur.execute(self.S_GET_USERS_BY_CID, (self.key,courseid))
+            cur.execute(self.S_GET_USERS_BY_CID, (self.key, courseid))
         for user in cur:
-            ret.append(self.build_user_dict(user[0],user[1],user[2]))
+            ret.append(self.build_user_dict(user[0], user[1], user[2]))
         return ret
 
-    def get_a_user(self,courseid):
+    #####已知courseid，获取一个缓存的user-dict信息
+    def get_a_user(self, courseid):
         cur = self.cnx.cursor()
-        cur.execute(self.S_GET_A_USER_BY_CID, (self.key,courseid))
+        cur.execute(self.S_GET_A_USER_BY_CID, (self.key, courseid))
         for user in cur:
-            return self.build_user_dict(user[0],user[1],user[2])
+            return self.build_user_dict(user[0], user[1], user[2])
 
-    def set_user_for_course(self,courseid,user):
+    #####更新courseid的缓存user信息
+    def set_user_for_course(self, courseid, user):
         cur = self.cnx.cursor()
-        cur.execute(self.S_CHANGE_USER_FOR_COURSE,(courseid,user['username']))
+        cur.execute(self.S_CHANGE_USER_FOR_COURSE, (courseid, user['username']))
 
-    def add_courses(self,courselist):
+    #[{id,user,id,name}]    其中user是user-dict,会被当成缓存的user
+    def add_courses(self, courselist):
         cur = self.cnx.cursor()
         for course in courselist:
             uid = course['user']['username']
-            cur.execute(self.S_INSERT_COURSENAME, (course['id'],course['name'],uid))
-            #cur.execute(self.S_INSERT_USERCOURSE, (course['id'],uid))
-            self.courseNameDict[course['id']]=course['name']
+            cur.execute(self.S_INSERT_COURSENAME, (course['id'], course['name'], uid))
+            # cur.execute(self.S_INSERT_USERCOURSE, (course['id'],uid))
+            self.courseNameDict[course['id']] = course['name']
         self.cnx.commit()
 
-    def add_user_course(self,courselist):
+    #[(uid,cid)]
+    def add_user_course(self, courselist):
         cur = self.cnx.cursor()
-        for uid,cid in courselist:
-            cur.execute(self.S_INSERT_USERCOURSE, (uid,cid))
+        for uid, cid in courselist:
+            cur.execute(self.S_INSERT_USERCOURSE, (uid, cid))
         self.cnx.commit()
 
-    def add_messages(self,msglist):
+    #[{id,course_id,date,title,detail}]
+    def add_messages(self, msglist):
         cur = self.cnx.cursor()
         for msg in msglist:
-            cur.execute(self.S_INSERT_MESSAGE, (msg['id'], msg['course_id'], msg['date'], msg['title'], msg['detail']))   #(MID,CID,Time,Title,Text)
+            cur.execute(self.S_INSERT_MESSAGE, (
+                msg['id'], msg['course_id'], msg['date'], msg['title'], msg['detail']))  # (MID,CID,Time,Title,Text)
         self.cnx.commit()
 
-    def add_works(self,worklist):
+    #[{id,course_id,end_time,title,detail}]
+    def add_works(self, worklist):
         cur = self.cnx.cursor()
         for work in worklist:
-            cur.execute(self.S_INSERT_WORK, (work['id'], work['course_id'], work['end_time'], work['title'], work['detail']))
+            cur.execute(self.S_INSERT_WORK,
+                        (work['id'], work['course_id'], work['end_time'], work['title'], work['detail']))
         self.cnx.commit()
 
+    #[(uid, wid)]
     def update_completion(self, completionlist):
         cur = self.cnx.cursor()
-        for uid,wid in completionlist:
-            cur.execute(self.S_INSERT_WORKFINISHED, (uid,wid))
+        for uid, wid in completionlist:
+            cur.execute(self.S_INSERT_WORKFINISHED, (uid, wid))
         self.cnx.commit()
 
     """
@@ -238,6 +261,7 @@ class Database:
                 ret.append(elem)
         return ret
     """
+
     def get_messages_in_days(self, openID, days):
         ret = []
         uid, upd = self.get_data_from_openid(openID)
@@ -254,10 +278,9 @@ class Database:
                 ret.append(elem)
         return ret
 
-
     def is_work_finished(self, uid, wid):
         cur = self.cnx.cursor()
-        cur.execute(self.S_IS_WORK_FINISHED,(uid, wid))
+        cur.execute(self.S_IS_WORK_FINISHED, (uid, wid))
         if cur.rowcount == 0:
             return False
         else:
@@ -278,4 +301,3 @@ class Database:
                         '_Finished': self.is_work_finished(uid, work[3]), '_Text': work[4]}
                 ret.append(elem)
         return ret
-
