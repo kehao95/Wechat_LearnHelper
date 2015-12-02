@@ -4,90 +4,208 @@
 from __future__ import print_function
 from decimal import Decimal
 from datetime import datetime, date, timedelta
-import mysql.connector
+import pymysql
 
 class Database:
-    S_GET_DATA_BY_OPENID = "SELECT UID,UPd FROM UserInfo WHERE OpenID = %s"
-    S_GET_DATA_BY_UID = "SELECT UID,UPd FROM UserInfo WHERE UID = %s"
+    S_GET_DATA_BY_OPENID = "SELECT UID,AES_DECRYPT(UPd,%s) FROM UserInfo WHERE OpenID = %s"
+    S_GET_DATA_BY_UID = "SELECT UID,AES_DECRYPT(UPd,%s) FROM UserInfo WHERE UID = %s"
     S_GET_CID_BY_UID = "SELECT CID FROM UserCourse WHERE UID = %s"
+    S_GET_USERS_BY_CID = "SELECT UserInfo.UID,AES_DECRYPT(UserInfo.UPd,%s),UserInfo.OpenID FROM UserCourse,UserInfo WHERE UserInfo.UID=UserCourse.UID AND UserCourse.CID=%s"
+    S_GET_A_USER_BY_CID = "SELECT UserInfo.UID,AES_DECRYPT(UserInfo.UPd,%s),UserInfo.OpenID FROM UserCourse,UserInfo WHERE UserInfo.UID=CourseName.UID AND CourseName.CID=%s"
     S_GET_MSG_BY_CID = "SELECT CID,Time,Title,Text FROM Message WHERE CID = %s"
     S_GET_MSG_IN_DAYS = "SELECT CID,Time,Title,Text FROM Message WHERE CID = %s AND DATE_SUB(CURDATE(),INTERVAL %s DAY) <= date(Time)"
     # S_GET_WORK_BY_CID = "SELECT CID,EndTime,Title,Text WHERE CID = %s"
     S_GET_COURSENAME = "SELECT CID,Name FROM CourseName"
+    S_GET_NAME_FROM_CID = "SELECT Name FROM CourseName WHERE CID = %s"
     S_GET_WORK_AFTER = "SELECT CID,EndTime,Title,WID,Text FROM Work WHERE CID = %s AND EndTime > DATE(%s)"
+    S_GET_ALL_USER = "SELECT UID, AES_DECRYPT(UPd,%s), OpenID FROM UserInfo"
+    S_GET_ALL_UID = "SELECT UID FROM UserInfo" 
+    S_GET_ALL_MID = "SELECT MID FROM Message"
+    S_GET_ALL_CID = "SELECT CID FROM CourseName"
+    S_GET_ALL_WID = "SELECT WID FROM Work"
+    
+    S_IS_WORK_FINISHED = "SELECT WID FROM WorkFinished WHERE UID = %s AND WID = %s"
 
-    S_IS_WORK_FINISHED = "SELECT HID FROM WorkFinished WHERE UID = %s AND HID = %s"
-
-    S_INSERT_WORKFINISHED = "INSERT IGNORE INTO WorkFinished (UID,HID) VALUES(%s,%s)"
-    S_INSERT_USERINFO = "INSERT IGNORE INTO UserInfo (UID,UPd,OpenID) VALUES (%s,%s,%s)"
+    S_INSERT_WORKFINISHED = "INSERT IGNORE INTO WorkFinished (UID,WID) VALUES(%s,%s)"
+    S_INSERT_USERINFO = "INSERT IGNORE INTO UserInfo (UID,UPd,OpenID) VALUES (%s,AES_ENCRYPT(%s,%s),%s)"
     S_INSERT_WORK = "INSERT IGNORE INTO Work (WID, CID, EndTime, Title, Text) VALUES (%s,%s,DATE(%s),%s,%s)"
-    S_INSERT_COURSENAME = "INSERT IGNORE INTO CourseName (CID, Name) VALUES(%s,%s)"
+    S_INSERT_COURSENAME = "INSERT IGNORE INTO CourseName (CID, Name,UID) VALUES(%s,%s,%s)"
     S_INSERT_MESSAGE = "INSERT IGNORE INTO Message (MID,CID,Time,Title,Text) VALUES(%s,%s,DATE(%s),%s,%s)"
     S_INSERT_USERCOURSE = "INSERT IGNORE INTO UserCourse (UID,CID) VALUES(%s,%s)"
 
-    S_DATABASE_NAME = 'wechat_learnhelper'
-    cnx = None
-    courseNameDict = {}
+    S_CHANGE_PSW_BY_OPENID = "UPDATE IGNORE UserInfo SET UPd=AES_ENCRYPT(%s,%s) WHERE OpenID=%s"
+    S_CHANGE_USER_FOR_COURSE = "UPDATE IGNORE UserCourse SET UID=%d WHERE CID=%d"
 
-    def __init__(self, username, password):
-        self.cnx = mysql.connector.connect(user=username, database= self.S_DATABASE_NAME, host='127.0.0.1', password=password)
+    S_DELETE_USER = "DELETE FROM UserInfo WHERE OpenID=%s"
+
+    S_DATABASE_NAME = 'thu_learn'
+    cnx = None
+    key = "salt"
+
+    courseNameDict = {}
+    
+
+    def __init__(self, username, password,salt='salt'):
+        self.cnx = pymysql.connect(user=username, db= self.S_DATABASE_NAME, host='127.0.0.1', passwd=password,charset="utf8")
         self.courseNameLoad()
-        
-        
+        self.key = salt
 
 
     def build_database(self):
         S_SET_UTF8 = "alter database %s character set utf8 collate utf8_unicode_ci"
 
-        S_BUILD_COURSENAME = "create table CourseName (CID int primary key, Name varchar(30))"
-        S_BUILD_WORK = "create table Work (WID int primary key, CID int, EndTime date, Text varchar(32767), Title varchar(63))"
-        S_BUILD_MESSAGE = "create table Message (MID int primary key, CID int, Time date, Sender varchar(14), Text varchar(32767), Title varchar(63))"
-        S_BUILD_USERINFO = "create table UserInfo (UID int primary key, UPd varchar(25), OpenID varchar(30))"
+        S_BUILD_COURSENAME = "create table CourseName (CID int primary key, Name varchar(30), UID int, UPd blob)"
+        S_BUILD_WORK = "create table Work (WID int primary key, CID int, EndTime date, Text TEXT, Title varchar(63))"
+        S_BUILD_MESSAGE = "create table Message (MID int primary key, CID int, Time date, Text TEXT, Title varchar(63))"
+        S_BUILD_USERINFO = "create table UserInfo (UID int primary key, UPd blob, OpenID varchar(30))"
         S_BUILD_USERCOURSE = "create table UserCourse (UID int, CID int, primary key(UID, CID))"
-        S_BUILD_WORKFINISHED = "create table WorkFinished (UID int, HID int, primary key(UID, HID))"
+        S_BUILD_WORKFINISHED = "create table WorkFinished (UID int, WID int, primary key(UID, WID))"
 
-        cur = self.cnx.cursor(buffered=True)
+        cur = self.cnx.cursor()
+
         cur.execute(self.S_BUILD_COURSENAME)
         cur.execute(self.S_BUILD_MESSAGE)
         cur.execute(self.S_BUILD_WORK)
         cur.execute(self.S_BUILD_USERINFO)
         cur.execute(self.S_BUILD_USERCOURSE)
         cur.execute(self.S_BUILD_WORKFINISHED)
-        cur.execute(self.S_SET_UTF8, (self.S_DATABASE_NAME,))
-
+        #cur.execute(self.S_SET_UTF8, (self.S_DATABASE_NAME,))
+        self.cnx.commit()
 
     #build_database()
 
+
+#####user {'username': ,'password': ,'openid': }
+
+    def build_user_dict(self,uid,upd,openid):
+        return {'username':uid,'password':upd.decode('utf8'),'openid':openid}
+
     def get_data_from_openid(self, openID):
-        cur = self.cnx.cursor(buffered=True)
-        cur.execute(self.S_GET_DATA_BY_OPENID, (openID,))
+        cur = self.cnx.cursor()
+        cur.execute(self.S_GET_DATA_BY_OPENID, (self.key, openID))
         for i in cur:
             return i
-
 
     def isOpenIDBound(self, openID):
         return self.get_data_from_openid(openID) != None
 
-
     def courseNameLoad(self):
-        cur = self.cnx.cursor(buffered=True)
+        cur = self.cnx.cursor()
         cur.execute(self.S_GET_COURSENAME)
         for cid, name in cur:
             self.courseNameDict[cid] = name
 
 
     def bind_user_openID(self, uid, upd, openID):
-        cur = self.cnx.cursor(buffered=True)
-        cur.execute(self.S_GET_DATA_BY_UID, (uid,))
+        cur = self.cnx.cursor()
+        cur.execute(self.S_GET_DATA_BY_UID, (self.key,uid))
         if (cur.rowcount != 0):
             return 2
-        cur.execute(self.S_INSERT_USERINFO, (uid, upd, openID))
+        cur.execute(self.S_INSERT_USERINFO, (uid, upd, self.key, openID))
         self.cnx.commit()
         return 1 - cur.rowcount  # 0:success  1:failure
 
+    def change_password(self, openID, upd):
+        cur = self.cnx.cursor()
+        cur.execute(self.S_CHANGE_PSW_BY_OPENID, (upd, self.key,openID))
+        self.cnx.commit()
+        if(cur.rowcount != 0):
+            return 0
+        return 1
 
+    def unbind_user_openID(self, openID):
+        cur = self.cnx.cursor()
+        cur.execute(self.S_DELETE_USER,(openID,))
+        self.cnx.commit()
+
+    def get_all_messages(self):
+        ret=[]
+        cur = self.cnx.cursor()
+        cur.execute(self.S_GET_ALL_MID)
+        for mid in cur:
+            ret.append(mid)
+        return ret
+
+    def get_all_works(self):
+        ret=[]
+        cur = self.cnx.cursor()
+        cur.execute(self.S_GET_ALL_WID)
+        for mid in cur:
+            ret.append(mid)
+        return ret
+        
+    def get_all_courses(self, user=-1):
+        ret = []
+        cur = self.cnx.cursor()
+        if(user == -1):
+            cur.execute(self.S_GET_ALL_CID)
+        else:
+            if isinstance(user,Int):
+                uid = user
+            else:
+                uid = user['username']
+            cur.execute(self.S_GET_CID_BY_UID, (uid,))
+        for cid, in cur:
+            ret.append(cid)
+        return ret
+
+    def get_all_users(self, courseid=-1):
+        ret = []
+        cur = self.cnx.cursor()
+        if(courseid == -1):
+            cur.execute(self.S_GET_ALL_USER, (self.key,))
+        else:
+            cur.execute(self.S_GET_USERS_BY_CID, (self.key,courseid))
+        for user in cur:
+            ret.append(self.build_user_dict(user[0],user[1],user[2]))
+        return ret
+
+    def get_a_user(self,courseid):
+        cur = self.cnx.cursor()
+        cur.execute(self.S_GET_A_USER_BY_CID, (self.key,courseid))
+        for user in cur:
+            return self.build_user_dict(user[0],user[1],user[2])
+
+    def set_user_for_course(self,courseid,user):
+        cur = self.cnx.cursor()
+        cur.execute(self.S_CHANGE_USER_FOR_COURSE,(courseid,user['username']))
+
+    def add_courses(self,courselist):
+        cur = self.cnx.cursor()
+        for course in courselist:
+            uid = course['user']['username']
+            cur.execute(self.S_INSERT_COURSENAME, (course['id'],course['name'],uid))
+            #cur.execute(self.S_INSERT_USERCOURSE, (course['id'],uid))
+            self.courseNameDict[course['id']]=course['name']
+        self.cnx.commit()
+
+    def add_user_course(self,courselist):
+        cur = self.cnx.cursor()
+        for uid,cid in courselist:
+            cur.execute(self.S_INSERT_USERCOURSE, (uid,cid))
+        self.cnx.commit()
+
+    def add_messages(self,msglist):
+        cur = self.cnx.cursor()
+        for msg in msglist:
+            cur.execute(self.S_INSERT_MESSAGE, (msg['id'], msg['course_id'], msg['date'], msg['title'], msg['detail']))   #(MID,CID,Time,Title,Text)
+        self.cnx.commit()
+
+    def add_works(self,worklist):
+        cur = self.cnx.cursor()
+        for work in worklist:
+            cur.execute(self.S_INSERT_WORK, (work['id'], work['course_id'], work['end_time'], work['title'], work['detail']))
+        self.cnx.commit()
+
+    def update_completion(self, completionlist):
+        cur = self.cnx.cursor()
+        for uid,wid in completionlist:
+            cur.execute(self.S_INSERT_WORKFINISHED, (uid,wid))
+        self.cnx.commit()
+
+    """
     def store(self, d):
-        cur = self.cnx.cursor(buffered=True)
+        cur = self.cnx.cursor()
         uid = int(d['_user']['username'])
         cur.execute(self.S_GET_DATA_BY_OPENID, (d['_user']['openID'],))
         for course in d['_courses']:
@@ -101,13 +219,14 @@ class Database:
             for msg in course['_messages']:
                 cur.execute(self.S_INSERT_MESSAGE, (msg['_id'], cid, msg['_date'], msg['_title'], msg['_details']))
         self.cnx.commit()
-        courseNameLoad()
+        #courseNameLoad()
+
 
     def get_all_messages(self, openID):
         ret = []
         uid, upd = self.get_data_from_openid(openID)
-        curC = self.cnx.cursor(buffered=True)
-        curM = self.cnx.cursor(buffered=True)
+        curC = self.cnx.cursor()
+        curM = self.cnx.cursor()
         curC.execute(self.S_GET_CID_BY_UID, (uid,))
         for course in curC:
             if (course[0] == 126501):
@@ -118,12 +237,12 @@ class Database:
                 elem = {'_Time': msg[1], '_Title': msg[2], '_CourseName': self.courseNameDict[msg[0]]}
                 ret.append(elem)
         return ret
-
+    """
     def get_messages_in_days(self, openID, days):
         ret = []
         uid, upd = self.get_data_from_openid(openID)
-        curC = self.cnx.cursor(buffered=True)
-        curM = self.cnx.cursor(buffered=True)
+        curC = self.cnx.cursor()
+        curM = self.cnx.cursor()
         curC.execute(self.S_GET_CID_BY_UID, (uid,))
         for course in curC:
             if (course[0] == 126501):
@@ -136,20 +255,19 @@ class Database:
         return ret
 
 
-    def is_work_finished(self, uid, hid):
-        cur = self.cnx.cursor(buffered=True)
-        cur.execute(self.S_IS_WORK_FINISHED,(uid, hid))
+    def is_work_finished(self, uid, wid):
+        cur = self.cnx.cursor()
+        cur.execute(self.S_IS_WORK_FINISHED,(uid, wid))
         if cur.rowcount == 0:
             return False
         else:
             return True
 
-
     def get_works_after_today(self, openID):
         ret = []
         uid, upd = self.get_data_from_openid(openID)
-        curC = self.cnx.cursor(buffered=True)
-        curW = self.cnx.cursor(buffered=True)
+        curC = self.cnx.cursor()
+        curW = self.cnx.cursor()
         curC.execute(self.S_GET_CID_BY_UID, (uid,))
         for course in curC:
             curW.execute(self.S_GET_WORK_AFTER, (course[0], date.today()))
