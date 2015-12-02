@@ -127,7 +127,7 @@ class Database:
         cur.execute(self.S_DELETE_USER, (openID,))
         self.cnx.commit()
 
-    # 全部公告id的list
+    # 全部公告id的set
     def get_all_messages(self):
         ret = []
         cur = self.cnx.cursor()
@@ -135,7 +135,7 @@ class Database:
         ret = set(map(str, [mid for mid, in cur]))
         return ret
 
-    # 全部作业id的list
+    # 全部作业id的set
     def get_all_works(self):
         ret = []
         cur = self.cnx.cursor()
@@ -143,9 +143,9 @@ class Database:
         ret = set(map(str,[cid for cid, in cur]))
         return ret
 
-    # 0参数：全部课程id的list
-    # 1个int识别为userid, 返回user的课程id的list
-    # 1个user-dict，userid为user['username']，返回user的课程id的list
+    # 0参数：全部课程id的set
+    # 1个int识别为userid, 返回user的课程id的set
+    # 1个user-dict，userid为user['username']，返回user的课程id的set
     def get_all_courses(self, user=-1):
         ret = []
         cur = self.cnx.cursor()

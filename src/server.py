@@ -10,14 +10,12 @@ import json
 import time
 import requests
 
-
 sys.path += ["./lib", "./lib/wechat-python-sdk"]
 import getip
 from timeout import (settimeout, timeout)
 from wechat_sdk import WechatBasic
 from wechat_sdk.messages import (TextMessage, VoiceMessage, ImageMessage, VideoMessage, LinkMessage, LocationMessage,
                                  EventMessage)
-
 
 # globals
 _MY_IP = ""
@@ -31,12 +29,13 @@ _APP_BUTTONS = ""
 _TEMPLATE_SUCCESS = ""
 _TEMPLATE_HOMEWORK = ""
 _TEMPLATE_ANNOUNCEMENT = ""
+_URL_BASE = ""
+_URL_LOGIN = ""
 app = Flask(__name__)
 wechat = None
 logger = None
 
 database = None
-
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -58,12 +57,12 @@ def main_listener():
     else:  # 主要功能
         logger.info("post")
         data = request.get_data().decode('utf-8')
-#        try:
-#            with timeout(5):
-#                handler = Handler(data)
-#                response = handler.get_response()
-#        except TimeoutError:
-#            response = ""
+        #        try:
+        #            with timeout(5):
+        #                handler = Handler(data)
+        #                response = handler.get_response()
+        #        except TimeoutError:
+        #            response = ""
         handler = Handler(data)
         response = handler.get_response()
         return response
@@ -106,6 +105,18 @@ def show_homework():
 
 @app.route('/bind', methods=['GET', 'POST'])
 def bind_student_account():
+    def check_vaild(username, password):
+        data = dict(
+            userid=username,
+            userpass=password,
+        )
+        r = requests.get(_URL_LOGIN)
+        content = r.content
+        if len(content) > 120:
+            return False
+        else:
+            return True
+
     if request.method == "GET":
         openID = request.args.get('openID')
         return render_template("bind.html", openID=openID)
@@ -115,9 +126,9 @@ def bind_student_account():
     openID = request.form["openID"]
     studentID = request.form["studentID"]
     password = request.form["password"]
-    # TODO
-
-    result = 0  #bind_uid_openid(openID, studentID, password)
+    result = 0
+    if check_vaild(username=studentID, password=password) is not True:
+        result = 1
     if result == 0:
         newusersdict = json.load(open("newusers.json", 'r'))
         newuser = {
@@ -126,11 +137,11 @@ def bind_student_account():
             "password": password
         }
         newusersdict["newusers"].append(newuser)
-        json.dump(newusersdict,open("newusers.json", 'w'))
+        json.dump(newusersdict, open("newusers.json", 'w'))
 
-#    if result == 0:
-#        spider = Spider(openID, studentID, password)
-#        database.store(spider.get_dict())
+    #    if result == 0:
+    #        spider = Spider(openID, studentID, password)
+    #        database.store(spider.get_dict())
     return jsonify({"result": result})
 
 
@@ -268,7 +279,7 @@ class Handler:
                     pass
             else:
                 pass
-        else :
+        else:
             return wechat.response_text(content="请输入文字信息")
         return response
 
@@ -290,6 +301,9 @@ def _get_globals():
     _HOST_HTTP = "http://%s:%s" % (_MY_IP, _MY_PORT)
     _HOST_HTTPS = "https://%s:%s" % (_MY_IP, _MY_PORT)
     logger.info("local address:%s" % _HOST_HTTP)
+    # thu learn urls
+    _URL_BASE = 'https://learn.tsinghua.edu.cn'
+    _URL_LOGIN = _URL_BASE + '/MultiLanguage/lesson/teacher/loginteacher.jsp'
     # get app secrets
     global _APP_ID
     global _APP_SECRET
