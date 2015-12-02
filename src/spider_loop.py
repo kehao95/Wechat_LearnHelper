@@ -4,7 +4,9 @@ __email__ = "kehao95@gmail.com"
 from aiolearn import *
 import asyncio
 import json
+import db
 
+database = None
 
 def get_users():
     logger.debug("get_users")
@@ -13,21 +15,23 @@ def get_users():
         users = secret['users']
     return users
 
-
 async def update_database():
     logger.debug("database")
-    users = get_users()
-    existing_works_ids = []
-    existing_messages_ids = []
-    existing_courses_ids = []
+    users = database.get_all_users()
+    #users = get_users()
+    existing_works_ids = database.get_all_works() # TODO
+    existing_messages_ids = database.get_all_messages()
+    existing_courses_ids = database.get_all_courses()
     Users = []
     for user in users:
+        database.bind_user_openID(user['username'], user['password'], user['username'])
         Users.append(User(user['username'], user['password']))
+    logger.debug(Users)
     semesters = [Semester(user) for user in Users]
     courses = list(chain(*await asyncio.gather(*[semester.courses for semester in semesters])))
     works = list(chain(*await asyncio.gather(*[course.works for course in courses])))
     messages = list(chain(*await asyncio.gather(*[course.messages for course in courses])))
-
+    logger.debug("checkpoint 1")
 
     courses_to_append =[]
     for course in courses:
@@ -56,6 +60,12 @@ async def update_database():
     works_dicts = list(await asyncio.gather(*[work.dict for work in works_to_append]))
     completion = [(work.user.username, work.id) for work in works if work.completion]
     user_course = [(course.user.username, course.id) for course in courses]
+    # TODO
+    database.add_courses(courses_dicts)
+    database.add_messages(messages_dicts)
+    database.add_works(works_dicts)
+    database.update_completion(completion)
+    database.add_user_course(user_course)
     print("end")
     await asyncio.sleep(100)
 
@@ -66,5 +76,8 @@ async def main():
 
 
 if __name__ == "__main__":
+    with open(".secret.json", 'r') as f:
+        secret = json.loads(f.read())
+        database = db.Database(secret['database']['username'],secret['database']['password'],secret['database']['key'])
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
