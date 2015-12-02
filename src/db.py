@@ -130,7 +130,7 @@ class Database:
         ret = []
         cur = self.cnx.cursor()
         cur.execute(self.S_GET_ALL_MID)
-        for mid in cur:
+        for mid, in cur:
             ret.append(mid)
         return ret
 
@@ -139,8 +139,8 @@ class Database:
         ret = []
         cur = self.cnx.cursor()
         cur.execute(self.S_GET_ALL_WID)
-        for mid in cur:
-            ret.append(mid)
+        for wid, in cur:
+            ret.append(wid)
         return ret
 
     #0参数：全部课程id的list
