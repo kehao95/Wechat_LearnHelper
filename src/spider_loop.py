@@ -42,11 +42,10 @@ async def get_a_valid_user(course_id):
 
 async def update_courses():
     existing_works_ids = database.get_all_works()  # TODO
-    existing_messages_ids = database.get_all_messages()
+    existing_messages_ids =database.get_all_messages()
     existing_courses_ids = database.get_all_courses()
     courses = []
     for course_id in existing_courses_ids:
-        course_id = str(course_id)
         user = await get_a_valid_user(course_id)
         print((user.username, course_id))
         if user is None:
@@ -56,24 +55,25 @@ async def update_courses():
     works = list(chain(*await asyncio.gather(*[course.works for course in courses])))
     messages = list(chain(*await asyncio.gather(*[course.messages for course in courses])))
 
-    works_to_append = []
+    works_to_append = set()
     for work in works:
         if work.id not in existing_works_ids:
-            existing_works_ids.append(work.id)
-            works_to_append.append(work)
+            existing_works_ids.add(work.id)
+            works_to_append.add(work)
     logger.debug(len(works_to_append))
 
-    messages_to_append = []
+    messages_to_append = set()
     for message in messages:
         if message.id not in existing_messages_ids:
-            existing_messages_ids.append(message.id)
-            messages_to_append.append(message)
+            existing_messages_ids.add(message.id)
+            messages_to_append.add(message)
     logger.debug(len(messages_to_append))
 
     messages_dicts = list(await asyncio.gather(*[message.dict for message in messages_to_append]))
     works_dicts = list(await asyncio.gather(*[work.dict for work in works_to_append]))
     database.add_messages(messages_dicts)
     database.add_works(works_dicts)
+    
 
 
 async def update_completions():
@@ -94,8 +94,8 @@ async def update_completions():
 
 async def main():
     while True:
-        await update_completions()
         await update_courses()
+        await update_completions()
         await asyncio.sleep(5 * 60)
 
 

@@ -19,9 +19,6 @@ from wechat_sdk.messages import (TextMessage, VoiceMessage, ImageMessage, VideoM
                                  EventMessage)
 
 
-
-# from learn_spider import *
-
 # globals
 _MY_IP = ""
 _MY_PORT = ""
@@ -116,9 +113,6 @@ def bind_student_account():
     studentID = request.form["studentID"]
     password = request.form["password"]
     result = 0  #bind_uid_openid(openID, studentID, password)
-#    if result == 0:
-#        spider = Spider(openID, studentID, password)
-#        database.store(spider.get_dict())
     return jsonify({"result": result})
 
 
