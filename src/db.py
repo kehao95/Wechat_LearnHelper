@@ -7,6 +7,7 @@ from datetime import datetime, date, timedelta
 import pymysql
 import logging
 
+
 class Database:
     S_GET_DATA_BY_OPENID = "SELECT UID,AES_DECRYPT(UPd,%s) FROM UserInfo WHERE OpenID = %s"
     S_GET_DATA_BY_UID = "SELECT UID,AES_DECRYPT(UPd,%s) FROM UserInfo WHERE UID = %s"
@@ -39,16 +40,15 @@ class Database:
 
     S_DELETE_USER = "DELETE FROM UserInfo WHERE OpenID=%s"
 
-    S_DATABASE_NAME = 'thu_learn'
     cnx = None
     key = "salt"  # AES加密用到的密钥
 
     courseNameDict = {}  # 缓存的课程名称【待处理】
 
     # mysql用户名，mysql密码，密钥，主机地址
-    def __init__(self, username, password, salt='salt', address='127.0.0.1'):
+    def __init__(self, username, password, database, salt='salt', address='127.0.0.1'):
         logging.debug("connecting to mysql server")
-        self.cnx = pymysql.connect(user=username, db=self.S_DATABASE_NAME, host=address, passwd=password,
+        self.cnx = pymysql.connect(user=username, db=database, host=address, passwd=password,
                                    charset="utf8")
         logging.debug("connection established")
         self.courseNameLoad()
@@ -140,7 +140,7 @@ class Database:
         ret = []
         cur = self.cnx.cursor()
         cur.execute(self.S_GET_ALL_WID)
-        ret = set(map(str,[cid for cid, in cur]))
+        ret = set(map(str, [cid for cid, in cur]))
         return ret
 
     # 0参数：全部课程id的set
@@ -157,7 +157,7 @@ class Database:
             else:
                 uid = user['username']
             cur.execute(self.S_GET_CID_BY_UID, (uid,))
-        ret =set(map(str,[cid for cid, in cur]))
+        ret = set(map(str, [cid for cid, in cur]))
         return ret
 
     # 0参数：全username的list
@@ -300,3 +300,7 @@ class Database:
                         '_Finished': self.is_work_finished(uid, work[3]), '_Text': work[4]}
                 ret.append(elem)
         return ret
+
+
+if __name__ == "__main__":
+    db = Database()

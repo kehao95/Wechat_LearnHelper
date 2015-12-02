@@ -81,8 +81,8 @@ async def main():
 
 if __name__ == "__main__":
     with open(".secret.json", 'r') as f:
-        secret = json.loads(f.read())
-        database = db.Database(secret['database']['username'], secret['database']['password'],
-                               secret['database']['key'], secret['database']['host'])
+        db_secret = json.loads(f.read())['database']
+        db.Database(username=db_secret['username'], password=db_secret['password'],
+                    database=db_secret['database_name'], salt=db_secret['key'], address=db_secret['host'])
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())

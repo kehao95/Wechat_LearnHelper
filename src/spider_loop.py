@@ -42,7 +42,7 @@ async def get_a_valid_user(course_id):
 
 async def update_courses():
     existing_works_ids = database.get_all_works()  # TODO
-    existing_messages_ids =database.get_all_messages()
+    existing_messages_ids = database.get_all_messages()
     existing_courses_ids = database.get_all_courses()
     courses = []
     for course_id in existing_courses_ids:
@@ -73,7 +73,7 @@ async def update_courses():
     works_dicts = list(await asyncio.gather(*[work.dict for work in works_to_append]))
     database.add_messages(messages_dicts)
     database.add_works(works_dicts)
-
+    # TODO
 
 
 async def update_completions():
@@ -101,8 +101,8 @@ async def main():
 
 if __name__ == '__main__':
     with open(".secret.json", 'r') as f:
-        secret = json.loads(f.read())
-        database = db.Database(secret['database']['username'], secret['database']['password'],
-                               secret['database']['key'], secret['database']['host'])
+        db_secret = json.loads(f.read())['database']
+        database = db.Database(username=db_secret['username'], password=db_secret['password'],
+                               database=db_secret['database_name'], salt=db_secret['key'], address=db_secret['host'])
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
