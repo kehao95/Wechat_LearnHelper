@@ -17,8 +17,7 @@ def get_users():
 
 async def update_database():
     logger.debug("database")
-    users = database.get_all_users()
-    #users = get_users()
+    users = get_users()
     existing_works_ids = database.get_all_works() # TODO
     existing_messages_ids = database.get_all_messages()
     existing_courses_ids = database.get_all_courses()
@@ -78,6 +77,6 @@ async def main():
 if __name__ == "__main__":
     with open(".secret.json", 'r') as f:
         secret = json.loads(f.read())
-        database = db.Database(secret['database']['username'],secret['database']['password'],secret['database']['key'])
+        database = db.Database(secret['database']['username'],secret['database']['password'],secret['database']['key'],secret['database']['host'])
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
