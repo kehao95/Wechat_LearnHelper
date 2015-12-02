@@ -46,7 +46,9 @@ async def update_courses():
     existing_courses_ids = database.get_all_courses()
     courses = []
     for course_id in existing_courses_ids:
+        course_id = str(course_id)
         user = await get_a_valid_user(course_id)
+        print((user.username, course_id))
         if user is None:
             continue
         else:
