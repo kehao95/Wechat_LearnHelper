@@ -73,7 +73,7 @@ async def update_courses():
     works_dicts = list(await asyncio.gather(*[work.dict for work in works_to_append]))
     database.add_messages(messages_dicts)
     database.add_works(works_dicts)
-    
+
 
 
 async def update_completions():

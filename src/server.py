@@ -28,6 +28,9 @@ _APP_TOKEN = ""
 _APP_SECRET = ""
 _APP_ID = ""
 _APP_BUTTONS = ""
+_TEMPLATE_SUCCESS = ""
+_TEMPLATE_HOMEWORK = ""
+_TEMPLATE_ANNOUNCEMENT = ""
 app = Flask(__name__)
 wechat = None
 logger = None
@@ -112,7 +115,22 @@ def bind_student_account():
     openID = request.form["openID"]
     studentID = request.form["studentID"]
     password = request.form["password"]
+    # TODO
+
     result = 0  #bind_uid_openid(openID, studentID, password)
+    if result == 0:
+        newusersdict = json.load(open("newusers.json", 'r'))
+        newuser = {
+            "username": studentID,
+            "openid": openID,
+            "password": password
+        }
+        newusersdict["newusers"].append(newuser)
+        json.dump(newusersdict,open("newusers.json", 'w'))
+
+#    if result == 0:
+#        spider = Spider(openID, studentID, password)
+#        database.store(spider.get_dict())
     return jsonify({"result": result})
 
 
@@ -277,12 +295,18 @@ def _get_globals():
     global _APP_SECRET
     global _APP_TOKEN
     global _APP_BUTTONS
+    global _TEMPLATE_SUCCESS
+    global _TEMPLATE_HOMEWORK
+    global _TEMPLATE_ANNOUNCEMENT
     secrets = json.loads(open(".secret.json", "r").read())
     logger.info("load secrets:\n%s" % secrets)
     _APP_ID = secrets['appID']
     _APP_TOKEN = secrets['Token']
     _APP_SECRET = secrets['appsecret']
     _APP_BUTTONS = secrets['buttons']
+    _TEMPLATE_SUCCESS = secrets['successTemplate']
+    _TEMPLATE_HOMEWORK = secrets['homeworkTemplate']
+    _TEMPLATE_ANNOUNCEMENT = secrets['announcementTemplate']
     # wechat
     global wechat
     wechat = WechatBasic(token=_APP_TOKEN, appid=_APP_ID, appsecret=_APP_SECRET)
@@ -307,7 +331,7 @@ def send_success_message(openID, studentnumber):
             "color": "#ff0000"
         }
     }
-    wechat.send_template_message(user_id=openID, template_id="pc5HSXZ1Gmn5ToG9QEgmEQ1I1JBtypMsoOFheuvDk-o", data=pushdata, url="")
+    wechat.send_template_message(user_id=openID, template_id=_TEMPLATE_SUCCESS, data=pushdata, url="")
 
 
 def send_new_homework(openIDs, homework):
@@ -330,7 +354,7 @@ def send_new_homework(openIDs, homework):
         }
     }
     for user_id in openIDs:
-        wechat.send_template_message(user_id=user_id, template_id="UIaXu9hM3wBra4eEdpqEhVDk3I8K7BtqWoXsq38bQlY", data=pushdata, url="")
+        wechat.send_template_message(user_id=user_id, template_id=_TEMPLATE_HOMEWORK, data=pushdata, url="")
 
 
 def send_new_announcement(openIDs, annoucement):
@@ -353,7 +377,7 @@ def send_new_announcement(openIDs, annoucement):
         }
     }
     for user_id in openIDs:
-        wechat.send_template_message(user_id=user_id, template_id="WxE0DOK_MyKUGn_vGnekfqUuDyElCWCEYFI4eSDbmu8", data=pushdata, url="")
+        wechat.send_template_message(user_id=user_id, template_id=_TEMPLATE_ANNOUNCEMENT, data=pushdata, url="")
 
 
 def main():
