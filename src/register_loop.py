@@ -53,7 +53,7 @@ async def update_database():
     existing_courses_ids = database.get_all_courses()
     Users = []
     for user in users:
-        database.bind_user_openID(user['username'], user['password'], user['username'])
+        database.bind_user_openID(user['username'], user['password'], user['openid'])
         Users.append(User(user['username'], user['password']))
     semesters = [Semester(user) for user in Users]
     courses = list(chain(*await asyncio.gather(*[semester.courses for semester in semesters])))
