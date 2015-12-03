@@ -336,13 +336,14 @@ def _get_globals():
     global _TEMPLATE_ANNOUNCEMENT
     secrets = json.loads(open(".secret.json", "r").read())
     logger.info("load secrets:\n%s" % secrets)
-    _APP_ID = secrets['appID']
-    _APP_TOKEN = secrets['Token']
-    _APP_SECRET = secrets['appsecret']
-    _APP_BUTTONS = secrets['buttons']
-    _TEMPLATE_SUCCESS = secrets['successTemplate']
-    _TEMPLATE_HOMEWORK = secrets['homeworkTemplate']
-    _TEMPLATE_ANNOUNCEMENT = secrets['announcementTemplate']
+    app = secrets['app']
+    _APP_ID = app['appID']
+    _APP_TOKEN = app['Token']
+    _APP_SECRET = app['appsecret']
+    _APP_BUTTONS = app['buttons']
+    _TEMPLATE_SUCCESS = app['successTemplate']
+    _TEMPLATE_HOMEWORK = app['homeworkTemplate']
+    _TEMPLATE_ANNOUNCEMENT = app['announcementTemplate']
     # wechat
     global wechat
     wechat = WechatBasic(token=_APP_TOKEN, appid=_APP_ID, appsecret=_APP_SECRET)

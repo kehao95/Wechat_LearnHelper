@@ -66,21 +66,21 @@ async def update_database():
         if course.id not in existing_courses_ids:
             existing_courses_ids.add(course.id)
             courses_to_append.append(course)
-    logger.debug(len(courses_to_append))
+    logger.debug(" courses_to_append: %d" % len(courses_to_append))
 
     works_to_append = []
     for work in works:
         if work.id not in existing_works_ids:
             existing_works_ids.add(work.id)
             works_to_append.append(work)
-    logger.debug(len(works_to_append))
+    logger.debug("   works_to_append: %d" % len(works_to_append))
 
     messages_to_append = []
     for message in messages:
         if message.id not in existing_messages_ids:
             existing_messages_ids.add(message.id)
             messages_to_append.append(message)
-    logger.debug(len(messages_to_append))
+    logger.debug("messages_to_append: %d" % len(messages_to_append))
 
     courses_dicts = [course.dict for course in courses_to_append]
     messages_dicts = list(await asyncio.gather(*[message.dict for message in messages_to_append]))
