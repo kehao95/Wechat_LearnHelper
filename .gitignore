@@ -57,5 +57,7 @@ docs/_build/
 target/
 .idea/
 
-.secret.json
-secret.json
+**/.secret.json
+**/secret.json
+**/address.txt
+**/newusers.json
