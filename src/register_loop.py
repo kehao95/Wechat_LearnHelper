@@ -15,14 +15,22 @@ def get_users():
     获取刚刚绑定的用户列表
     :return: users dict list
     """
+    users = []
     logger.debug("get_users")
-    with open(".secret.json", 'r') as f:
-        secret = json.loads(f.read())
-        users = secret['users']
+    try:
+        with open("newusers.json", 'r') as f:
+            users = json.loads(f.read())
+        open("newusers.json", 'w').close()
+    except:
+        logger.debug("could not open 'newusers.json'")
+        pass
     return users
 
 
 def push_ok(users):
+    if not users:
+        # empty
+        return None
     logger.debug("get_server_address")
     with open("address.txt", "r") as f:
         url = f.read()
@@ -39,8 +47,7 @@ def get_test_users():
 async def update_database():
     #
     logger.debug("database")
-    users = get_test_users()
-    push_ok(users)
+    users = get_users()
     existing_works_ids = database.get_all_works()  # TODO
     existing_messages_ids = database.get_all_messages()
     existing_courses_ids = database.get_all_courses()
@@ -86,16 +93,17 @@ async def update_database():
     logger.debug("insert       works: %d" % len(works_dicts))
     logger.debug("insert   comletion: %d" % len(completion))
     logger.debug("insert user_course: %d" % len(user_course))
-
+    # add this to databases
     database.add_courses(courses_dicts)
     database.add_messages(messages_dicts)
     database.add_works(works_dicts)
     database.update_completion(completion)
     database.add_user_course(user_course)
-
-    print("wait for another round: 50 seconds")
-    await asyncio.sleep(50)
-    print("let do it again!")
+    # push register success info
+    push_ok(users)
+    print("wait for another 3 seconds")
+    await asyncio.sleep(3)
+    print("let's do it again!")
 
 
 async def main():

@@ -15,7 +15,7 @@ create table UserInfo (UID int primary key, UPd blob, OpenID varchar(30));
 create table UserCourse (UID int, CID int, primary key(UID, CID));
 create table WorkFinished (UID int, WID int, primary key(UID, WID));
 show variables like '%character%';
-show tables
+show tables;
 ```
 
 ## 进入测试号/公众号设置下列三个模板消息：

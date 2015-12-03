@@ -110,7 +110,7 @@ def bind_student_account():
             userid=username,
             userpass=password,
         )
-        r = requests.get(_URL_LOGIN)
+        r = requests.post(_URL_LOGIN, data)
         content = r.content
         if len(content) > 120:
             return False
@@ -130,14 +130,18 @@ def bind_student_account():
     if check_vaild(username=studentID, password=password) is not True:
         result = 1
     if result == 0:
-        newusersdict = json.load(open("newusers.json", 'r'))
+        newusers = []
+        try:
+            newusersdict = json.load(open("newusers.json", 'r'))
+        except:
+            logger.debug("could not open newusers.json")
         newuser = {
             "username": studentID,
             "openid": openID,
             "password": password
         }
-        newusersdict["newusers"].append(newuser)
-        json.dump(newusersdict, open("newusers.json", 'w'))
+        newusers.append(newuser)
+        json.dump(newusers, open("newusers.json", 'w'))
     return jsonify({"result": result})
 
 
@@ -148,14 +152,13 @@ def push_messages():
     The server will push message to users
     :return:
     """
-    data = str(request.get_data() , encoding = "utf-8")
+    data = str(request.get_data(), encoding="utf-8")
     data = json.loads(data)
     if data["type"] == "register_loop":
         logger.debug("get push request from register_loop")
         print(data)
         for user in data['users']:
-            print(user)
-
+            send_success_message(user['openid'], user['username'])
 
     return ""
 
@@ -317,8 +320,10 @@ def _get_globals():
     _HOST_HTTPS = "https://%s:%s" % (_MY_IP, _MY_PORT)
     logger.info("local address:%s" % _HOST_HTTP)
     with open("address.txt", 'w') as f:
-        f.write(_HOST_HTTP+"/push")
+        f.write(_HOST_HTTP + "/push")
     # thu learn urls
+    global _URL_BASE
+    global _URL_LOGIN
     _URL_BASE = 'https://learn.tsinghua.edu.cn'
     _URL_LOGIN = _URL_BASE + '/MultiLanguage/lesson/teacher/loginteacher.jsp'
     # get app secrets
