@@ -21,10 +21,16 @@ def get_users():
     return users
 
 
+def get_test_users():
+    with open(".secret.json", 'r') as f:
+        users = json.loads(f.read())['users']
+    return users
+
+
 async def update_database():
     #
     logger.debug("database")
-    users = get_users()
+    users = get_test_users()
     existing_works_ids = database.get_all_works()  # TODO
     existing_messages_ids = database.get_all_messages()
     existing_courses_ids = database.get_all_courses()
@@ -41,21 +47,21 @@ async def update_database():
     courses_to_append = []
     for course in courses:
         if course.id not in existing_courses_ids:
-            existing_courses_ids.append(course.id)
+            existing_courses_ids.add(course.id)
             courses_to_append.append(course)
     logger.debug(len(courses_to_append))
 
     works_to_append = []
     for work in works:
         if work.id not in existing_works_ids:
-            existing_works_ids.append(work.id)
+            existing_works_ids.add(work.id)
             works_to_append.append(work)
     logger.debug(len(works_to_append))
 
     messages_to_append = []
     for message in messages:
         if message.id not in existing_messages_ids:
-            existing_messages_ids.append(message.id)
+            existing_messages_ids.add(message.id)
             messages_to_append.append(message)
     logger.debug(len(messages_to_append))
 
@@ -82,7 +88,7 @@ async def main():
 if __name__ == "__main__":
     with open(".secret.json", 'r') as f:
         db_secret = json.loads(f.read())['database']
-        db.Database(username=db_secret['username'], password=db_secret['password'],
+        database = db.Database(username=db_secret['username'], password=db_secret['password'],
                     database=db_secret['database_name'], salt=db_secret['key'], address=db_secret['host'])
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
