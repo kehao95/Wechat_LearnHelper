@@ -301,6 +301,8 @@ def _get_globals():
     _HOST_HTTP = "http://%s:%s" % (_MY_IP, _MY_PORT)
     _HOST_HTTPS = "https://%s:%s" % (_MY_IP, _MY_PORT)
     logger.info("local address:%s" % _HOST_HTTP)
+    with open("address.txt",'w') as f:
+        f.write(_HOST_HTTP)
     # thu learn urls
     _URL_BASE = 'https://learn.tsinghua.edu.cn'
     _URL_LOGIN = _URL_BASE + '/MultiLanguage/lesson/teacher/loginteacher.jsp'
