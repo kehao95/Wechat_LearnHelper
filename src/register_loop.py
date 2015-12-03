@@ -71,13 +71,20 @@ async def update_database():
     completion = [(work.user.username, work.id) for work in works if work.completion]
     user_course = [(course.user.username, course.id) for course in courses]
 
+    logger.debug("insert     courses: %d" % len(courses_dicts))
+    logger.debug("insert    messages: %d" % len(messages_dicts))
+    logger.debug("insert       works: %d" % len(works_dicts))
+    logger.debug("insert   comletion: %d" % len(completion))
+    logger.debug("insert user_course: %d" % len(user_course))
+
     database.add_courses(courses_dicts)
     database.add_messages(messages_dicts)
     database.add_works(works_dicts)
     database.update_completion(completion)
     database.add_user_course(user_course)
-    print("end")
-    await asyncio.sleep(100)
+    print("wait for another round: 50 seconds")
+    await asyncio.sleep(50)
+    print("let do it again!")
 
 
 async def main():
@@ -89,6 +96,6 @@ if __name__ == "__main__":
     with open(".secret.json", 'r') as f:
         db_secret = json.loads(f.read())['database']
         database = db.Database(username=db_secret['username'], password=db_secret['password'],
-                    database=db_secret['database_name'], salt=db_secret['key'], address=db_secret['host'])
+                               database=db_secret['database_name'], salt=db_secret['key'], address=db_secret['host'])
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
