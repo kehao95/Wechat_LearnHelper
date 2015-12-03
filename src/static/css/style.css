@@ -44,7 +44,7 @@ h1 {
 	font-family: Oswald-Regular;
 }
 
-.signin input[type="text"] {
+.signin input[id="studentID"] {
     width: 90%;
     margin-bottom: 20px;
     background: #74797C url('../images/1.png') no-repeat 405px 8px;
@@ -142,7 +142,7 @@ form {
 /*--- Responsinator Code ---*/
 
 @media (max-width:1920px) {
-    .signin input[type="text"] {
+    .signin input[id="studentID"] {
         width: 93%;
 		background: #74797C url('../images/1.png') no-repeat 598px 8px;
 	}
@@ -153,7 +153,7 @@ form {
 }
 
 @media (max-width:1680px) {
-    .signin input[type="text"] {
+    .signin input[id="studentID"] {
         width: 91.5%;
 		background: #74797C url('../images/1.png') no-repeat 513px 9px;
     }
@@ -164,7 +164,7 @@ form {
 }
 
 @media (max-width:1600px) {
-    .signin input[type="text"] {
+    .signin input[id="studentID"] {
 		width: 91%;
 		background: #74797C url('../images/1.png') no-repeat 485px 9px;
 	}
@@ -175,7 +175,7 @@ form {
 }
 
 @media (max-width:1440px) {
-    .signin input[type="text"] {
+    .signin input[id="studentID"] {
 		width: 90%;
 		background: #74797C url('../images/1.png') no-repeat 430px 9px;
 	}
@@ -186,7 +186,7 @@ form {
 }
 
 @media (max-width:1366px) {
-    .signin input[type="text"] {
+    .signin input[id="studentID"] {
 		width: 89.5%;
 		background: #74797C url('../images/1.png') no-repeat 405px 9px;
 	}
@@ -197,7 +197,7 @@ form {
 }
 
 @media (max-width:1280px) {
-	.signin input[type="text"] {
+	.signin input[id="studentID"] {
 		width: 88.5%;
 		background: #74797C url('../images/1.png') no-repeat 375px 9px;
 	}
@@ -211,7 +211,7 @@ form {
 	.contact-form  {
 	    width: 40%;
 	}
-    .signin input[type="text"] {
+    .signin input[id="studentID"] {
 		width: 89%;
 		background: #74797C url('../images/1.png') no-repeat 405px 9px;
 	}
@@ -225,7 +225,7 @@ form {
 	.contact-form  {
 	    width: 45%;
 	}
-    .signin input[type="text"] {
+    .signin input[id="studentID"] {
 		width: 89.5%;
 		background: #74797C url('../images/1.png') no-repeat 400px 9px;
 	}
@@ -239,7 +239,7 @@ form {
 	.contact-form  {
 	    width: 45%;
 	}
-    .signin input[type="text"] {
+    .signin input[id="studentID"] {
 		width: 89.5%;
 		background: #74797C url('../images/1.png') no-repeat 395px 9px;
 	}
@@ -253,7 +253,7 @@ form {
 	.contact-form  {
 	    width: 50%;
 	}
-	.signin input[type="text"] {
+	.signin input[id="studentID"] {
 		width: 90%;
 		background: #74797C url('../images/1.png') no-repeat 437px 9px;
 	}
@@ -267,7 +267,7 @@ form {
     .contact-form  {
 	    width: 50%;
 	}
-	.signin input[type="text"] {
+	.signin input[id="studentID"] {
 		width: 89.5%;
 		background: #74797C url('../images/1.png') no-repeat 417px 9px;
 	}
@@ -281,7 +281,7 @@ form {
     .contact-form  {
 	    width: 50%;
 	}
-	.signin input[type="text"] {
+	.signin input[id="studentID"] {
 		width: 89.5%;
 		background: #74797C url('../images/1.png') no-repeat 405px 9px;
 	}
@@ -295,7 +295,7 @@ form {
 	.contact-form  {
 	    width: 50%;
 	}
-	.signin input[type="text"] {
+	.signin input[id="studentID"] {
 		width: 88.5%;
 		background: #74797B url('../images/1.png') no-repeat 375px 9px;
 	}
@@ -309,7 +309,7 @@ form {
     .contact-form {
 	    width: 55%;
 	}
-	.signin input[type="text"] {
+	.signin input[id="studentID"] {
 		width: 89%;
 		background: #74797B url('../images/1.png') no-repeat 385px 9px;
 	}
@@ -323,7 +323,7 @@ form {
 	.contact-form {
         width: 55%;
     }
-	.signin input[type="text"] {
+	.signin input[id="studentID"] {
 		width: 88.5%;
 		background: #74797B url('../images/1.png') no-repeat 365px 9px;
 	}
@@ -337,7 +337,7 @@ form {
 	.contact-form {
         width: 60%;
     }
-	.signin input[type="text"] {
+	.signin input[id="studentID"] {
 		width: 88.5%;
 		background: #74797B url('../images/1.png') no-repeat 382px 9px;
 	}
@@ -351,7 +351,7 @@ form {
     .contact-form {
 	    width: 65%;
 	}
-	.signin input[type="text"] {
+	.signin input[id="studentID"] {
 		width: 89%;
 		background: #74797B url('../images/1.png') no-repeat 395px 9px;
 	}
@@ -365,7 +365,7 @@ form {
     .contact-form {
         width: 65%;
     }
-	.signin input[type="text"] {
+	.signin input[id="studentID"] {
 		width: 88%;
 		background: #74797B url('../images/1.png') no-repeat 345px 9px;
 	}
@@ -386,7 +386,7 @@ form {
 	.signin {
 		margin-top: 35px;
 	}
-	.signin input[type="text"] {
+	.signin input[id="studentID"] {
 		width: 88%;
 		background: #74797B url('../images/1.png') no-repeat 328px 9px;
 	}
@@ -403,7 +403,7 @@ form {
 	.contact-form {
         width: 70%;
     }
-    .signin input[type="text"] {
+    .signin input[id="studentID"] {
 		width: 88%;
 		background: #74797B url('../images/1.png') no-repeat 345px 9px;
 	}
@@ -417,7 +417,7 @@ form {
 	.contact-form {
         width: 70%;
     }
-	.signin input[type="text"] {
+	.signin input[id="studentID"] {
 		width: 87.5%;
 		background: #74797B url('../images/1.png') no-repeat 330px 9px;
 	}
@@ -431,7 +431,7 @@ form {
     .contact-form {
 	    width: 75%;
 	}
-	.signin input[type="text"] {
+	.signin input[id="studentID"] {
 		width: 87.5%;
 		background: #74797B url('../images/1.png') no-repeat 330px 9px;
 	}
@@ -445,7 +445,7 @@ form {
 	.contact-form {
         width: 70%;
     }
-	.signin input[type="text"] {
+	.signin input[id="studentID"] {
 		width: 86%;
 		background: #74797B url('../images/1.png') no-repeat 289px 9px;
 	}
@@ -459,7 +459,7 @@ form {
     .contact-form {
         width: 80%;
     }
-	.signin input[type="text"] {
+	.signin input[id="studentID"] {
 		width: 86%;
 		background: #74797B url('../images/1.png') no-repeat 285px 9px;
 	}
@@ -477,7 +477,7 @@ form {
 		width: 85%;
 		background: #74797C url('../images/2.png') no-repeat 285px 9px;
 	}
-	.signin input[type="text"] {
+	.signin input[id="studentID"] {
 		width: 85%;
 		background: #74797B url('../images/1.png') no-repeat 285px 9px;
 	}
@@ -497,7 +497,7 @@ form {
 	.signin {
 		margin-top: 35px;
 	}
-	.signin input[type="text"] {
+	.signin input[id="studentID"] {
 		width: 84%;
 		background: #74797B url('../images/1.png') no-repeat 250px 9px;
 	}
@@ -520,7 +520,7 @@ form {
 	h1 {
 	    font-size: 35px;
 	}
-	.signin input[type="text"] {
+	.signin input[id="studentID"] {
 		background: #74797B url('../images/1.png') no-repeat 256px 9px;
 	}
 	.signin input[type="password"] {
@@ -551,7 +551,7 @@ form {
 	.signin {
 	    margin-top: 35px;
 	}
-	.signin input[type="text"] {
+	.signin input[id="studentID"] {
 		width: 83%;
 		background: #74797C url('../images/1.png') no-repeat 240px 9px;
 	}
@@ -572,7 +572,7 @@ form {
 	.signin {
 	    margin-top: 30px;
 	}		
-	.signin input[type="text"] {
+	.signin input[id="studentID"] {
 		width: 80%;
 		background: #74797B url('../images/1.png') no-repeat 191px 9px;
 	}
@@ -609,7 +609,7 @@ form {
 	.signin {
 	    margin-top: 30px;
 	}
-	.signin input[type="text"] {
+	.signin input[id="studentID"] {
 		width: 72%;
 		margin-bottom: 10px;
 		background: #74797B url('../images/1.png') no-repeat 130px 9px;
