@@ -5,6 +5,7 @@ from aiolearn import *
 import asyncio
 import json
 import db
+import requests
 
 database = None
 
@@ -21,6 +22,14 @@ def get_users():
     return users
 
 
+def push_ok(users):
+    logger.debug("get_server_address")
+    with open("address.txt", "r") as f:
+        url = f.read()
+    data = {"type": "register_loop", "users": users}
+    requests.post(url, json.dumps(data))
+
+
 def get_test_users():
     with open(".secret.json", 'r') as f:
         users = json.loads(f.read())['users']
@@ -31,6 +40,7 @@ async def update_database():
     #
     logger.debug("database")
     users = get_test_users()
+    push_ok(users)
     existing_works_ids = database.get_all_works()  # TODO
     existing_messages_ids = database.get_all_messages()
     existing_courses_ids = database.get_all_courses()
@@ -82,6 +92,7 @@ async def update_database():
     database.add_works(works_dicts)
     database.update_completion(completion)
     database.add_user_course(user_course)
+
     print("wait for another round: 50 seconds")
     await asyncio.sleep(50)
     print("let do it again!")

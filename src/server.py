@@ -138,11 +138,26 @@ def bind_student_account():
         }
         newusersdict["newusers"].append(newuser)
         json.dump(newusersdict, open("newusers.json", 'w'))
-
-    #    if result == 0:
-    #        spider = Spider(openID, studentID, password)
-    #        database.store(spider.get_dict())
     return jsonify({"result": result})
+
+
+@app.route('/push', methods=["POST"])
+def push_messages():
+    """
+    if event happens event_loop will send a request to this
+    The server will push message to users
+    :return:
+    """
+    data = str(request.get_data() , encoding = "utf-8")
+    data = json.loads(data)
+    if data["type"] == "register_loop":
+        logger.debug("get push request from register_loop")
+        print(data)
+        for user in data['users']:
+            print(user)
+
+
+    return ""
 
 
 class Handler:
@@ -301,8 +316,8 @@ def _get_globals():
     _HOST_HTTP = "http://%s:%s" % (_MY_IP, _MY_PORT)
     _HOST_HTTPS = "https://%s:%s" % (_MY_IP, _MY_PORT)
     logger.info("local address:%s" % _HOST_HTTP)
-    with open("address.txt",'w') as f:
-        f.write(_HOST_HTTP)
+    with open("address.txt", 'w') as f:
+        f.write(_HOST_HTTP+"/push")
     # thu learn urls
     _URL_BASE = 'https://learn.tsinghua.edu.cn'
     _URL_LOGIN = _URL_BASE + '/MultiLanguage/lesson/teacher/loginteacher.jsp'
