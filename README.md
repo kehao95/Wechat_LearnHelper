@@ -14,3 +14,25 @@ create table UserCourse (UID int, CID int, primary key(UID, CID));
 create table WorkFinished (UID int, WID int, primary key(UID, WID));
 show variables like '%character%';
 
+templates:
+1、
+模板标题：
+新发布的作业
+模板内容：
+{{coursename.DATA}}
+{{title.DATA}}
+截止时间：{{endtime.DATA}}
+{{text.DATA}}
+2、
+模板标题：
+新发布的公告
+模板内容：
+{{coursename.DATA}}
+{{title.DATA}}
+发布时间：{{time.DATA}}
+{{text.DATA}}
+3、
+模板标题：
+信息导入成功
+模板内容：
+恭喜{{studentnumber.DATA}}同学，你的快速查询服务已全部开启。
