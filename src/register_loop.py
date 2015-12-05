@@ -34,7 +34,7 @@ def push_ok(users):
     logger.debug("get_server_address")
     with open("address.txt", "r") as f:
         url = f.read()
-    data = {"type": "register_loop", "users": users}
+    data = {"type": "register_done", "users": users}
     requests.post(url, json.dumps(data))
 
 

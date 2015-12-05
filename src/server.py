@@ -138,11 +138,17 @@ def push_messages():
     """
     data = str(request.get_data(), encoding="utf-8")
     data = json.loads(data)
-    if data["type"] == "register_loop":
-        logger.debug("get push request from register_loop")
-        print(data)
+    push_type = data["type"]
+    logger.debug("get push request: %s"%push_type)
+    if push_type == "register_done":
         for user in data['users']:
             send_success_message(user['openid'], user['username'])
+    elif push_type == "new_messages":
+        # todo hjy
+        pass
+    elif push_type == "new_homework":
+        # todo hjy
+        pass
     return ""
 
 
