@@ -3,10 +3,23 @@ __email__ = "kehao95@gmail.com"
 
 from aiolearn import *
 import asyncio
+import requests
 import json
 import db
 
 database = None
+
+
+def push_new_items(items_dict, event_type):
+    if not items_dict:
+        return
+    logger.debug("get_server_address")
+    with open("address.txt", "r") as f:
+        url = f.read()
+    for item in items_dict:
+        users = database.get_all_users(item["course_id"])
+        data = {"type": event_type, "users": users, "data": item}
+        requests.post(url, json.dumps(data))
 
 
 async def get_a_valid_user(course_id):
@@ -74,6 +87,8 @@ async def update_courses():
     database.add_messages(messages_dicts)
     database.add_works(works_dicts)
     # TODO
+    push_new_items(works_dicts, "new_works")
+    push_new_items(messages_dicts, "new_messages")
 
 
 async def update_completions():
