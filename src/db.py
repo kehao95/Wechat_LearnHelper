@@ -9,24 +9,24 @@ import logging
 
 
 class Database:
-    S_GET_DATA_BY_OPENID = "SELECT UID,AES_DECRYPT(UPd,%s) FROM UserInfo WHERE OpenID = %s"
-    S_GET_DATA_BY_UID = "SELECT UID,AES_DECRYPT(UPd,%s) FROM UserInfo WHERE UID = %s"
-    S_GET_CID_BY_UID = "SELECT CID FROM UserCourse WHERE UID = %s"
-    S_GET_USERS_BY_CID = "SELECT UserInfo.UID,AES_DECRYPT(UserInfo.UPd,%s),UserInfo.OpenID FROM UserCourse,UserInfo WHERE UserInfo.UID=UserCourse.UID AND UserCourse.CID=%s"
-    S_GET_A_USER_BY_CID = "SELECT UserInfo.UID,AES_DECRYPT(UserInfo.UPd,%s),UserInfo.OpenID FROM CourseName,UserInfo WHERE UserInfo.UID=CourseName.UID AND CourseName.CID=%s"
-    S_GET_MSG_BY_CID = "SELECT CID,Time,Title,Text FROM Message WHERE CID = %s"
-    S_GET_MSG_IN_DAYS = "SELECT CID,Time,Title,Text FROM Message WHERE CID = %s AND DATE_SUB(CURDATE(),INTERVAL %s DAY) <= date(Time)"
-    # S_GET_WORK_BY_CID = "SELECT CID,EndTime,Title,Text WHERE CID = %s"
-    S_GET_COURSENAME = "SELECT CID,Name FROM CourseName"
-    S_GET_NAME_FROM_CID = "SELECT Name FROM CourseName WHERE CID = %s"
-    S_GET_WORK_AFTER = "SELECT CID,EndTime,Title,WID,Text FROM Work WHERE CID = %s AND EndTime > DATE(%s)"
-    S_GET_ALL_USER = "SELECT UID, AES_DECRYPT(UPd,%s), OpenID FROM UserInfo"
-    S_GET_ALL_UID = "SELECT UID FROM UserInfo"
-    S_GET_ALL_MID = "SELECT MID FROM Message"
-    S_GET_ALL_CID = "SELECT CID FROM CourseName"
-    S_GET_ALL_WID = "SELECT WID FROM Work"
+    S_GET_DATA_BY_OPENID = "SELECT SQL_NO_CACHE UID,AES_DECRYPT(UPd,%s) FROM UserInfo WHERE OpenID = %s"
+    S_GET_DATA_BY_UID = "SELECT SQL_NO_CACHE UID,AES_DECRYPT(UPd,%s) FROM UserInfo WHERE UID = %s"
+    S_GET_CID_BY_UID = "SELECT SQL_NO_CACHE CID FROM UserCourse WHERE UID = %s"
+    S_GET_USERS_BY_CID = "SELECT SQL_NO_CACHE UserInfo.UID,AES_DECRYPT(UserInfo.UPd,%s),UserInfo.OpenID FROM UserCourse,UserInfo WHERE UserInfo.UID=UserCourse.UID AND UserCourse.CID=%s"
+    S_GET_A_USER_BY_CID = "SELECT SQL_NO_CACHE UserInfo.UID,AES_DECRYPT(UserInfo.UPd,%s),UserInfo.OpenID FROM CourseName,UserInfo WHERE UserInfo.UID=CourseName.UID AND CourseName.CID=%s"
+    S_GET_MSG_BY_CID = "SELECT SQL_NO_CACHE CID,Time,Title,Text FROM Message WHERE CID = %s"
+    S_GET_MSG_IN_DAYS = "SELECT SQL_NO_CACHE CID,Time,Title,Text FROM Message WHERE CID = %s AND DATE_SUB(CURDATE(),INTERVAL %s DAY) <= date(Time)"
+    # S_GET_WORK_BY_CID = "SELECT SQL_NO_CACHE CID,EndTime,Title,Text WHERE CID = %s"
+    S_GET_COURSENAME = "SELECT SQL_NO_CACHE CID,Name FROM CourseName"
+    S_GET_NAME_FROM_CID = "SELECT SQL_NO_CACHE Name FROM CourseName WHERE CID = %s"
+    S_GET_WORK_AFTER = "SELECT SQL_NO_CACHE CID,EndTime,Title,WID,Text FROM Work WHERE CID = %s AND EndTime > DATE(%s)"
+    S_GET_ALL_USER = "SELECT SQL_NO_CACHE UID, AES_DECRYPT(UPd,%s), OpenID FROM UserInfo"
+    S_GET_ALL_UID = "SELECT SQL_NO_CACHE UID FROM UserInfo"
+    S_GET_ALL_MID = "SELECT SQL_NO_CACHE MID FROM Message"
+    S_GET_ALL_CID = "SELECT SQL_NO_CACHE CID FROM CourseName"
+    S_GET_ALL_WID = "SELECT SQL_NO_CACHE WID FROM Work"
 
-    S_IS_WORK_FINISHED = "SELECT WID FROM WorkFinished WHERE UID = %s AND WID = %s"
+    S_IS_WORK_FINISHED = "SELECT SQL_NO_CACHE WID FROM WorkFinished WHERE UID = %s AND WID = %s"
 
     S_INSERT_WORKFINISHED = "INSERT IGNORE INTO WorkFinished (UID,WID) VALUES(%s,%s)"
     S_INSERT_USERINFO = "INSERT IGNORE INTO UserInfo (UID,UPd,OpenID) VALUES (%s,AES_ENCRYPT(%s,%s),%s)"
@@ -45,11 +45,12 @@ class Database:
 
     courseNameDict = {}  # 缓存的课程名称【待处理】
 
-    # mysql用户名，mysql密码，密钥，主机地址
+    # mysql用户名，mysql密码，数据库，密钥，主机地址
     def __init__(self, username, password, database, salt='salt', address='127.0.0.1'):
         logging.debug("connecting to mysql server")
         self.cnx = pymysql.connect(user=username, db=database, host=address, passwd=password,
                                    charset="utf8")
+        self.cnx.autocommit(True)
         logging.debug("connection established")
         self.courseNameLoad()
         self.key = salt
@@ -88,6 +89,12 @@ class Database:
     def get_data_from_openid(self, openID):
         cur = self.cnx.cursor()
         cur.execute(self.S_GET_DATA_BY_OPENID, (self.key, openID))
+        for i in cur:
+            return i
+
+    def get_user_by_username(self, uid):
+        cur = self.cnx.cursor()
+        cur.execute(self.S_GET_DATA_BY_UID, (self.key, uid))
         for i in cur:
             return i
 

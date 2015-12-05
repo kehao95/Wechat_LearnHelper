@@ -8,7 +8,6 @@ import db
 
 database = None
 
-
 async def get_a_valid_user(course_id):
     """
     get a valid user for course

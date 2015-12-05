@@ -276,8 +276,8 @@ class Handler:
 </xml>
             """
             type = self.message.type
-            key = self.message.key
             if type == "click":
+                key = self.message.key
                 if key == "BIND":
                     response = self.response_bind()
                 elif key == "ANNOUNCEMENT":
@@ -288,6 +288,8 @@ class Handler:
                     response = wechat.response_text(content="此功能暂时未开发")
                 else:
                     pass
+            elif type=="templatesendjobfinish":
+                logger.debug("template send job finish")
             else:
                 pass
         else:
