@@ -139,8 +139,8 @@ def push_messages():
     data = str(request.get_data(), encoding="utf-8")
     data = json.loads(data)
     push_type = data["type"]
-    logger.debug("get push request: %s"%push_type)
-    openidlist = map(lambda x : x["openid"], data["users"])
+    logger.debug("get push request: %s" % push_type)
+    openidlist = map(lambda x: x["openid"], data["users"])
     if push_type == "register_done":
         for user in data['users']:
             send_success_message(user['openid'], user['username'])
@@ -269,17 +269,7 @@ class Handler:
             else:
                 response = wechat.response_text(content="Echo:%s" % content)
         elif isinstance(self.message, EventMessage):
-            logger.info("EventMessage") # todo event
-            """
-            <xml><ToUserName><![CDATA[gh_271b17ee3580]]></ToUserName>
-<FromUserName><![CDATA[okHWgw6aLgj_RptXWJyDs-Emmw4A]]></FromUserName>
-<CreateTime>1449134381</CreateTime>
-<MsgType><![CDATA[event]]></MsgType>
-<Event><![CDATA[TEMPLATESENDJOBFINISH]]></Event>
-<MsgID>400937284</MsgID>
-<Status><![CDATA[success]]></Status>
-</xml>
-            """
+            logger.info("EventMessage")
             type = self.message.type
             if type == "click":
                 key = self.message.key
@@ -293,7 +283,7 @@ class Handler:
                     response = wechat.response_text(content="此功能暂时未开发")
                 else:
                     pass
-            elif type=="templatesendjobfinish":
+            elif type == "templatesendjobfinish":
                 logger.debug("template send job finish")
             else:
                 pass

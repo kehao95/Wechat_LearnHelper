@@ -61,3 +61,4 @@ target/
 **/secret.json
 **/address.txt
 **/newusers.json
+**/pass.txt
