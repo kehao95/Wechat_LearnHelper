@@ -87,7 +87,7 @@ class Database:
 
     def get_course_name(self, cid):
         try:
-            return self.courseNameDict[cid]
+            return self.courseNameDict[int(cid)]
         except:
             return ""
 
