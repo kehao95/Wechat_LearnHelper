@@ -11,6 +11,14 @@ database = None
 
 
 def push_new_items(items_dict, event_type):
+    """
+    if anything new in a course: file, message, work, etc
+    push the information and all user data in this course to server
+    request the server to push a template message to the users
+    :param items_dict: [item]
+    :param event_type: "new_messages","new_works"
+    :return: data {"type","users","data"}
+    """
     if not items_dict:
         return
     logger.debug("get_server_address")
@@ -56,8 +64,14 @@ async def get_a_valid_user(course_id):
 
 
 async def update_courses():
-    existing_works_ids = database.get_all_works()  # TODO
-    existing_messages_ids = database.get_all_messages()
+    """
+    update public information, fetch every courses once
+    fetch all courses' works and messages, (new files)
+    pick out the new ones
+    :return:
+    """
+
+    # prepare a valid user for each course
     existing_courses_ids = database.get_all_courses()
     courses = []
     for course_id in existing_courses_ids:
@@ -67,16 +81,20 @@ async def update_courses():
             continue
         else:
             courses.append(Course(user, course_id))
+
+    # fetch all works and messages of every course
     works = list(chain(*await asyncio.gather(*[course.works for course in courses])))
     messages = list(chain(*await asyncio.gather(*[course.messages for course in courses])))
 
+    # pick out the new messages and works (which are not in database yet)
+    existing_works_ids = database.get_all_works()
+    existing_messages_ids = database.get_all_messages()
     works_to_append = set()
     for work in works:
         if work.id not in existing_works_ids:
             existing_works_ids.add(work.id)
             works_to_append.add(work)
     logger.debug(len(works_to_append))
-
     messages_to_append = set()
     for message in messages:
         if message.id not in existing_messages_ids:
@@ -84,24 +102,36 @@ async def update_courses():
             messages_to_append.add(message)
     logger.debug(len(messages_to_append))
 
+    # add the new messages and works to the database
     messages_dicts = list(await asyncio.gather(*[message.dict for message in messages_to_append]))
     works_dicts = list(await asyncio.gather(*[work.dict for work in works_to_append]))
     database.add_messages(messages_dicts)
     database.add_works(works_dicts)
-    # TODO
+
+    # push the new items to their users
     push_new_items(works_dicts, "new_works")
     push_new_items(messages_dicts, "new_messages")
 
 
 async def update_completions():
+    """
+    update private information
+    get every user's work completion information
+    update them to database
+    :return:
+    """
     users = database.get_all_users()
     courses = []
     for user in users:
         courses_ids = database.get_all_courses(user)
         u = User(user['username'], user['password'])
-        await u.login()
-        for id in courses_ids:
-            courses.append(Course(u, str(id)))
+        try:
+            await u.login()
+            for id in courses_ids:
+                courses.append(Course(u, str(id)))
+        except:
+            # if user's password is not invalid anymore ignore him
+            continue
     logger.debug("courses: %r" % len(courses))
     works = list(chain(*await asyncio.gather(*[course.works for course in courses])))
     logger.debug("works: %r" % len(works))
