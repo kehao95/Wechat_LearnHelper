@@ -140,15 +140,14 @@ def push_messages():
     data = json.loads(data)
     push_type = data["type"]
     logger.debug("get push request: %s"%push_type)
+    openidlist = map(lambda x : x["openid"], data["users"])
     if push_type == "register_done":
         for user in data['users']:
             send_success_message(user['openid'], user['username'])
     elif push_type == "new_messages":
-        # todo hjy
-        pass
-    elif push_type == "new_homework":
-        # todo hjy
-        pass
+        send_new_announcement(openidlist, data["data"])
+    elif push_type == "new_works":
+        send_new_homework(openidlist, data["data"])
     return ""
 
 
@@ -377,20 +376,20 @@ def send_success_message(openID, studentnumber):
 def send_new_homework(openIDs, homework):
     pushdata = {
         "coursename": {
-            "value": homework["_CourseName"],
-            "color": "#00ff00"
+            "value": homework["course_name"],
+            "color": "#228B22"
         },
         "title": {
-            "value": homework["_Title"],
-            "color": "#00ff00"
+            "value": homework["title"],
+            "color": "#228B22"
         },
         "endtime": {
-            "value": str(homework["_EndTime"]),
-            "color": "#00ff00"
+            "value": str(homework["end_time"]),
+            "color": "#228B22"
         },
         "text": {
-            "value": homework["_Text"],
-            "color": "#00ff00"
+            "value": homework["detail"],
+            "color": "#228B22"
         }
     }
     for user_id in openIDs:
@@ -400,20 +399,20 @@ def send_new_homework(openIDs, homework):
 def send_new_announcement(openIDs, annoucement):
     pushdata = {
         "coursename": {
-            "value": annoucement["_CourseName"],
-            "color": "#00ff00"
+            "value": annoucement["course_name"],
+            "color": "#0000ff"
         },
         "title": {
-            "value": annoucement["_Title"],
-            "color": "#00ff00"
+            "value": annoucement["title"],
+            "color": "#0000ff"
         },
         "time": {
-            "value": str(annoucement["_Time"]),
-            "color": "#00ff00"
+            "value": str(annoucement["date"]),
+            "color": "#0000ff"
         },
         "text": {
-            "value": annoucement["_Text"],
-            "color": "#00ff00"
+            "value": annoucement["detail"],
+            "color": "#0000ff"
         }
     }
     for user_id in openIDs:

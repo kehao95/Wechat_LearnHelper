@@ -47,7 +47,7 @@ def get_test_users():
 async def update_database():
     #
     logger.debug("database")
-    users = get_users()
+    users = get_test_users()
     existing_works_ids = database.get_all_works()  # TODO
     existing_messages_ids = database.get_all_messages()
     existing_courses_ids = database.get_all_courses()

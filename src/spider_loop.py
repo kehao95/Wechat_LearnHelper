@@ -17,7 +17,9 @@ def push_new_items(items_dict, event_type):
     with open("address.txt", "r") as f:
         url = f.read()
     for item in items_dict:
+        course_name = database.get_course_name(item["course_id"])
         users = database.get_all_users(item["course_id"])
+        item["course_name"] = course_name
         data = {"type": event_type, "users": users, "data": item}
         requests.post(url, json.dumps(data))
 
@@ -111,7 +113,7 @@ async def main():
     while True:
         await update_courses()
         await update_completions()
-        await asyncio.sleep(5 * 60)
+        await asyncio.sleep(10)
 
 
 if __name__ == '__main__':

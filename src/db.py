@@ -85,6 +85,12 @@ class Database:
     def build_user_dict(self, uid, upd, openid):
         return {'username': uid, 'password': upd.decode('utf8'), 'openid': openid}
 
+    def get_course_name(self, cid):
+        try:
+            return self.courseNameDict[cid]
+        except:
+            return ""
+
     # 从openid获取 （用户名，密码）
     def get_data_from_openid(self, openID):
         cur = self.cnx.cursor()
