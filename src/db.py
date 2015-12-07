@@ -107,7 +107,7 @@ class Database:
             return ""
 
     # 从openid获取 （用户名，密码）
-    def get_data_from_openid(self, openID):
+    def get_data_by_openid(self, openID):
         cur = self.cnx.cursor()
         cur.execute(self.S_GET_DATA_BY_OPENID, (self.key, openID))
         for i in cur:
@@ -180,6 +180,8 @@ class Database:
                 cur.execute(self.S_INSERT_USERINFO, (uid, upd, self.key, openID))
             else:
                 #logging.debug("find openid delete")
+                uid,upd = self.get_data_by_openid(openID)
+                cur.execute(self.S_DELETE_USERCOURSE_BY_USER(uid,))
                 cur.execute(self.S_CHANGE_USER_BY_OPENID, (uid,upd,self.key,openID))
         self.cnx.commit()
         return 1 - cur.rowcount  # 0:success  1:database failure
@@ -342,7 +344,7 @@ class Database:
 
     def get_messages_in_days(self, openID, days):
         ret = []
-        uid, upd = self.get_data_from_openid(openID)
+        uid, upd = self.get_data_by_openid(openID)
         curC = self.cnx.cursor()
         curM = self.cnx.cursor()
         curC.execute(self.S_GET_CID_BY_UID, (uid,))
@@ -366,7 +368,7 @@ class Database:
 
     def get_works_after_today(self, openID):
         ret = []
-        uid, upd = self.get_data_from_openid(openID)
+        uid, upd = self.get_data_by_openid(openID)
         curC = self.cnx.cursor()
         curW = self.cnx.cursor()
         curC.execute(self.S_GET_CID_BY_UID, (uid,))
