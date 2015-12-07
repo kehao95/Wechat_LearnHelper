@@ -11,6 +11,8 @@ import logging
 class Database:
     S_GET_DATA_BY_OPENID = "SELECT SQL_NO_CACHE UID,AES_DECRYPT(UPd,%s) FROM UserInfo WHERE OpenID = %s"
     S_GET_DATA_BY_UID = "SELECT SQL_NO_CACHE UID,AES_DECRYPT(UPd,%s) FROM UserInfo WHERE UID = %s"
+    S_GET_STATUS_BY_OPENID = "SELECT SQL_NO_CACHE Status FROM UserInfo WHERE OpenID = %s"
+    S_GET_STATUS_BY_UID = "SELECT SQL_NO_CACHE Status FROM UserInfo WHERE UID = %s"
     S_GET_CID_BY_UID = "SELECT SQL_NO_CACHE CID FROM UserCourse WHERE UID = %s"
     S_GET_USERS_BY_CID = "SELECT SQL_NO_CACHE UserInfo.UID,AES_DECRYPT(UserInfo.UPd,%s),UserInfo.OpenID FROM UserCourse,UserInfo WHERE UserInfo.UID=UserCourse.UID AND UserCourse.CID=%s"
     S_GET_A_USER_BY_CID = "SELECT SQL_NO_CACHE UserInfo.UID,AES_DECRYPT(UserInfo.UPd,%s),UserInfo.OpenID FROM CourseName,UserInfo WHERE UserInfo.UID=CourseName.UID AND CourseName.CID=%s"
@@ -29,7 +31,7 @@ class Database:
     S_IS_WORK_FINISHED = "SELECT SQL_NO_CACHE WID FROM WorkFinished WHERE UID = %s AND WID = %s"
 
     S_INSERT_WORKFINISHED = "INSERT IGNORE INTO WorkFinished (UID,WID) VALUES(%s,%s)"
-    S_INSERT_USERINFO = "INSERT IGNORE INTO UserInfo (UID,UPd,OpenID) VALUES (%s,AES_ENCRYPT(%s,%s),%s)"
+    S_INSERT_USERINFO = "INSERT IGNORE INTO UserInfo (UID,UPd,OpenID,Status) VALUES (%s,AES_ENCRYPT(%s,%s),%s,1)"
     S_INSERT_WORK = "INSERT IGNORE INTO Work (WID, CID, EndTime, Title, Text) VALUES (%s,%s,DATE(%s),%s,%s)"
     S_INSERT_COURSENAME = "INSERT IGNORE INTO CourseName (CID, Name,UID) VALUES(%s,%s,%s)"
     S_INSERT_MESSAGE = "INSERT IGNORE INTO Message (MID,CID,Time,Title,Text) VALUES(%s,%s,DATE(%s),%s,%s)"
@@ -37,8 +39,17 @@ class Database:
 
     S_CHANGE_PSW_BY_OPENID = "UPDATE IGNORE UserInfo SET UPd=AES_ENCRYPT(%s,%s) WHERE OpenID=%s"
     S_CHANGE_USER_FOR_COURSE = "UPDATE IGNORE UserCourse SET UID=%d WHERE CID=%d"
+    S_CHANGE_USER_BY_UID = "UPDATE IGNORE UserInfo SET UPd=AES_ENCRYPT(%s,%s),OpenID=%s,Status=1 WHERE UID=%s"
+    S_CHANGE_USER_BY_OPENID = "UPDATE IGNORE UserInfo SET UID=%s,UPd=AES_ENCRYPT(%s,%s),Status=1 WHERE OpenID=%s"
+    S_SET_STATUS_BY_OPENID = "UPDATE IGNORE UserInfo SET Status=%s WHERE OpenID=%s"
+    S_SET_STATUS_BY_UID = "UPDATE IGNORE UserInfo SET Status=%s WHERE UID=%s"
 
     S_DELETE_USER = "DELETE FROM UserInfo WHERE OpenID=%s"
+
+    STATUS_OK = 0
+    STATUS_NOT_FOUND = -1
+    STATUS_WAITING = 1
+    STATUS_DELETE = 2
 
     cnx = None
     key = "salt"  # AES加密用到的密钥
@@ -62,9 +73,11 @@ class Database:
         S_BUILD_COURSENAME = "create table CourseName (CID int primary key, Name varchar(30), UID int, UPd blob)"
         S_BUILD_WORK = "create table Work (WID int primary key, CID int, EndTime date, Text TEXT, Title varchar(63))"
         S_BUILD_MESSAGE = "create table Message (MID int primary key, CID int, Time date, Text TEXT, Title varchar(63))"
-        S_BUILD_USERINFO = "create table UserInfo (UID int primary key, UPd blob, OpenID varchar(30))"
+        S_BUILD_USERINFO = "create table UserInfo (UID int primary key, UPd blob, OpenID varchar(30), Status int)"
         S_BUILD_USERCOURSE = "create table UserCourse (UID int, CID int, primary key(UID, CID))"
         S_BUILD_WORKFINISHED = "create table WorkFinished (UID int, WID int, primary key(UID, WID))"
+
+        ###注：Status标记用户状态。其中,0:正常，1:等待第一次 2:等待删除。-1：数据库中没有这个用户
 
         cur = self.cnx.cursor()
 
@@ -104,9 +117,41 @@ class Database:
         for i in cur:
             return i
 
+    def get_status_by_username(self, uid):
+        cur = self.cnx.cursor()
+        cur.execute(self.S_GET_STATUS_BY_UID, (uid,))
+        if cur.rowcount == 0:
+            return self.STATUS_NOT_FOUND
+        for i in cur:
+            return i[0]
+
+    def get_status_by_openid(self, openID):
+        cur = self.cnx.cursor()
+        cur.execute(self.S_GET_STATUS_BY_OPENID, (openID,))
+        if cur.rowcount == 0:
+            return self.STATUS_NOT_FOUND
+        for i in cur:
+            return i[0]
+
+    def set_status_by_openid(self, openID, status):
+        cur = self.cnx.cursor()
+        cur.execute(self.S_SET_STATUS_BY_OPENID, (status,openID))
+
+    def set_status_by_username(self, uid, status):
+        cur = self.cnx.cursor()
+        cur.execute(self.S_SET_STATUS_BY_UID, (status,uid))
+
+    # 从openid获取是否就绪
+    def isOpenIDAvailable(self,openID):
+        return self.get_status_by_openid(openID) == self.STATUS_OK
+
     # 从openid获取是否已经被绑定
     def isOpenIDBound(self, openID):
-        return self.get_data_from_openid(openID) != None
+        r = self.get_status_by_openid(openID)
+        return  r == self.STATUS_OK or r == self.STATUS_WAITING
+
+    def set_openid_ok(self, openID):
+        self.set_status_by_openid(openID, self.STATUS_OK)
 
     # 初始化调用，获取课程名称
     def courseNameLoad(self):
@@ -117,11 +162,17 @@ class Database:
 
     # 绑定openid和uid以及upd
     def bind_user_openID(self, uid, upd, openID):
+        r = self.get_status_by_username(uid)
         cur = self.cnx.cursor()
-        cur.execute(self.S_GET_DATA_BY_UID, (self.key, uid))
-        if (cur.rowcount != 0):
-            return 2  # username used
-        cur.execute(self.S_INSERT_USERINFO, (uid, upd, self.key, openID))
+        if r == self.STATUS_OK or r == self.STATUS_WAITING:
+            return 2
+        elif r == self.STATUS_OK:
+            cur.execute(self.S_CHANGE_USER_BY_UID, (upd,self.key, openID,uid))
+        elif r == self.STATUS_NOT_FOUND:
+            if cur.execute(self.S_GET_STATUS_BY_OPENID, (openID,)) == self.STATUS_NOT_FOUND :
+                cur.execute(self.S_INSERT_USERINFO, (uid, upd, self.key, openID))
+            else:
+                cur.execute(self.S_CHANGE_USER_BY_OPENID, (uid,upd,self.key,openID))
         self.cnx.commit()
         return 1 - cur.rowcount  # 0:success  1:database failure
 

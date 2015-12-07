@@ -415,7 +415,7 @@ def main():
         _create_buttons()
     except:
         pass
-    app.run(host='0.0.0.0', use_debugger=True, use_reloader=False)
+    app.run(host='0.0.0.0', use_debugger=True, use_reloader=False,port=8080)
 
 
 if __name__ == '__main__':
