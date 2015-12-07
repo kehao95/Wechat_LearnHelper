@@ -2,13 +2,15 @@ __author__ = "kehao"
 __email__ = "kehao95@gmail.com"
 
 from aiolearn import *
-import asyncio
-import json
 import db
+import json
+import asyncio
+import logging
 import requests
 
 database = None
-
+logging.basicConfig(level=logging.DEBUG)
+__logger = logging.getLogger(__name__)
 
 def get_users():
     """
@@ -17,13 +19,13 @@ def get_users():
     :return: users dict list
     """
     users = []
-    logger.debug("get_users")
+    __logger.debug("get_users")
     try:
         with open("newusers.json", 'r') as f:
             users = json.loads(f.read())
         open("newusers.json", 'w').close()
     except:
-        logger.debug("could not open 'newusers.json'")
+        __logger.debug("could not open 'newusers.json'")
         pass
     return users
 
@@ -37,7 +39,7 @@ def push_ok(users):
     """
     if not users:
         return None
-    logger.debug("get_server_address")
+    __logger.debug("get_server_address")
     with open("address.txt", "r") as f:
         url = f.read()
     data = {"type": "register_done", "users": users}
@@ -51,7 +53,7 @@ async def update_database():
     push them to database
     :return:
     """
-    logger.debug("update database")
+    __logger.debug("update database")
 
     # prepare users
     users = get_users()
@@ -75,19 +77,19 @@ async def update_database():
         if course.id not in existing_courses_ids:
             existing_courses_ids.add(course.id)
             courses_to_append.append(course)
-    logger.debug(" courses_to_append: %d" % len(courses_to_append))
+    __logger.debug(" courses_to_append: %d" % len(courses_to_append))
     works_to_append = []
     for work in works:
         if work.id not in existing_works_ids:
             existing_works_ids.add(work.id)
             works_to_append.append(work)
-    logger.debug("   works_to_append: %d" % len(works_to_append))
+    __logger.debug("   works_to_append: %d" % len(works_to_append))
     messages_to_append = []
     for message in messages:
         if message.id not in existing_messages_ids:
             existing_messages_ids.add(message.id)
             messages_to_append.append(message)
-    logger.debug("messages_to_append: %d" % len(messages_to_append))
+    __logger.debug("messages_to_append: %d" % len(messages_to_append))
 
     # add them to database
     courses_dicts = [course.dict for course in courses_to_append]
@@ -100,11 +102,11 @@ async def update_database():
     database.add_works(works_dicts)
     database.update_completion(completion)
     database.add_user_course(user_course)
-    logger.debug("insert     courses: %d" % len(courses_dicts))
-    logger.debug("insert    messages: %d" % len(messages_dicts))
-    logger.debug("insert       works: %d" % len(works_dicts))
-    logger.debug("insert  completion: %d" % len(completion))
-    logger.debug("insert user_course: %d" % len(user_course))
+    __logger.debug("insert     courses: %d" % len(courses_dicts))
+    __logger.debug("insert    messages: %d" % len(messages_dicts))
+    __logger.debug("insert       works: %d" % len(works_dicts))
+    __logger.debug("insert  completion: %d" % len(completion))
+    __logger.debug("insert user_course: %d" % len(user_course))
     # push register done messages
     push_ok(users)
 

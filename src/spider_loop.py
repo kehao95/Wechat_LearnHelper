@@ -2,12 +2,15 @@ __author__ = "kehao"
 __email__ = "kehao95@gmail.com"
 
 from aiolearn import *
-import asyncio
-import requests
-import json
 import db
+import json
+import asyncio
+import logging
+import requests
 
 database = None
+logging.basicConfig(level=logging.DEBUG)
+__logger = logging.getLogger(__name__)
 
 
 def push_new_items(items_dict, event_type):
@@ -21,15 +24,18 @@ def push_new_items(items_dict, event_type):
     """
     if not items_dict:
         return
-    logger.debug("get_server_address")
     with open("address.txt", "r") as f:
         url = f.read()
+    __logger.debug("get_server_address :%s" % url)
     for item in items_dict:
         course_name = database.get_course_name(item["course_id"])
         users = database.get_all_users(item["course_id"])
         item["course_name"] = course_name
         data = {"type": event_type, "users": users, "data": item}
-        requests.post(url, json.dumps(data))
+        try:
+            r = requests.post(url, json.dumps(data), timeout=0.02)
+        except:
+            __logger("push item connection timeout")
 
 
 async def get_a_valid_user(course_id):
@@ -94,13 +100,13 @@ async def update_courses():
         if work.id not in existing_works_ids:
             existing_works_ids.add(work.id)
             works_to_append.add(work)
-    logger.debug(len(works_to_append))
+    __logger.debug("works_to_append: %d" % len(works_to_append))
     messages_to_append = set()
     for message in messages:
         if message.id not in existing_messages_ids:
             existing_messages_ids.add(message.id)
             messages_to_append.add(message)
-    logger.debug(len(messages_to_append))
+    __logger.debug("messages_to_append: %d" % len(messages_to_append))
 
     # add the new messages and works to the database
     messages_dicts = list(await asyncio.gather(*[message.dict for message in messages_to_append]))
@@ -132,9 +138,9 @@ async def update_completions():
         except:
             # if user's password is not invalid anymore ignore him
             continue
-    logger.debug("courses: %r" % len(courses))
+    __logger.debug("courses: %r" % len(courses))
     works = list(chain(*await asyncio.gather(*[course.works for course in courses])))
-    logger.debug("works: %r" % len(works))
+    __logger.debug("works: %r" % len(works))
     completion = [(work.user.username, work.id) for work in works if work.completion]
     database.update_completion(completion)
 
