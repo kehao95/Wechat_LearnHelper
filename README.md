@@ -17,6 +17,18 @@ create table WorkFinished (UID int, WID int, primary key(UID, WID));
 show variables like '%character%';
 show tables;
 ```
+* 禁用数据库缓存
+mysql的缓存机制问题：pymysql会从缓存中返回数据，而一个connection作出的改动，并不能导致另一个connection更新缓存。
+可能的两种解决方案：限定每个数据库只能一个connection访问，或者禁止使用缓存。
+找到/etc/mysql/my.cnf，然后查找并修改
+
+```
+query_cache_limit	= 0
+query_cache_size    = 0
+```
+然后重启mysql服务。【简单粗暴的方法：重启系统】
+在mysql客户端执行```show variables like '%cache%';```查看缓存情况
+
 
 ## 进入测试号/公众号设置下列三个模板消息：
 1.
@@ -50,18 +62,3 @@ show tables;
 将其改名为 ".secret.json"放入src目录下
 
 
-
-
-
-#重：待办事项/权宜处理事项
-## 数据库缓存问题
-mysql的缓存机制问题：pymysql会从缓存中返回数据，而一个connection作出的改动，并不能导致另一个connection更新缓存。
-可能的两种解决方案：限定每个数据库只能一个connection访问，或者禁止使用缓存。
-目前采取了禁止缓存的方案，也即找到/etc/mysql/my.cnf，然后查找并修改
-
-```
-query_cache_limit	= 0
-query_cache_size    = 0
-```
-然后重启mysql服务。【简单粗暴的方法：重启系统】
-在mysql客户端执行```show variables like '%cache%';```查看缓存情况
