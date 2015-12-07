@@ -167,10 +167,7 @@ class Handler:
         self.openID = self.message.source
 
     def response_bind(self) -> str:
-        try:
-            isalreadybinded = database.isOpenIDBound(self.openID)
-        except:
-            isalreadybinded = False
+        isalreadybinded = database.isOpenIDBound(self.openID)
         if isalreadybinded:
             return wechat.response_text(content="您已经绑定过学号了。")
         card = {
@@ -181,10 +178,7 @@ class Handler:
         return wechat.response_news([card])
 
     def response_homework(self) -> str:
-        try:
-            isalreadybinded = database.isOpenIDBound(self.openID)  # functionA(openID)
-        except:
-            isalreadybinded = True
+        isalreadybinded = database.isOpenIDBound(self.openID)
         if not isalreadybinded:
             return wechat.response_text(content="您还未绑定过学号。")
         else:
@@ -196,28 +190,10 @@ class Handler:
             return wechat.response_news([card])
 
     def response_announce(self) -> str:
-        try:
-            isalreadybinded = database.isOpenIDBound(self.openID)  # functionA(openID)
-            if not isalreadybinded:
-                return wechat.response_text(content="您还未绑定过学号。")
-            announcements = database.get_messages_in_days(self.openID, 30)
-        except:
-            openID = "3"
-            announcements = [
-                {"_Time": date(2015, 1, 1), "_CourseName": "测试课程", "_Title": "测试案例、测试案例、测试案例、测试案例", "_Text": ""},
-                {"_Time": date(2011, 1, 1), "_CourseName": "软件工程", "_Title": "请同学们迭代一注意控制时间", "_Text": "详细内容"},
-                {"_Time": date(2011, 1, 2), "_CourseName": "软件工程", "_Title": "邮箱", "_Text": ""},
-                {"_Time": date(2011, 1, 1), "_CourseName": "工图", "_Title": "大作业要求", "_Text": ""},
-                {"_Time": date(2011, 1, 15), "_CourseName": "计网", "_Title": "大作业要求", "_Text": ""},
-                {"_Time": date(2010, 1, 1), "_CourseName": "计网", "_Title": "大作业要求", "_Text": ""},
-                {"_Time": date(2011, 1, 31), "_CourseName": "函数式语言", "_Title": "大作业要求", "_Text": ""},
-                {"_Time": date(2011, 12, 1), "_CourseName": "操作系统", "_Title": "大作业要求", "_Text": ""},
-                {"_Time": date(2011, 1, 11), "_CourseName": "操作系统", "_Title": "代码报告要求", "_Text": ""},
-                {"_Time": date(2011, 1, 31), "_CourseName": "操作系统", "_Title": "作业已上传", "_Text": ""},
-                {"_Time": date(2011, 12, 1), "_CourseName": "操作系统", "_Title": "大作业要求", "_Text": ""},
-                {"_Time": date(2011, 1, 11), "_CourseName": "操作系统", "_Title": "代码报告要求", "_Text": ""},
-                {"_Time": date(2011, 1, 31), "_CourseName": "操作系统", "_Title": "作业已上传", "_Text": ""},
-            ]
+        isalreadybinded = database.isOpenIDBound(self.openID)  # functionA(openID)
+        if not isalreadybinded:
+            return wechat.response_text(content="您还未绑定过学号。")
+        announcements = database.get_messages_in_days(self.openID, 30)
         announcements.sort(key=lambda x: x["_Time"], reverse=True)
         cardList = []
         if announcements == []:
