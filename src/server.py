@@ -57,7 +57,7 @@ def main_listener():
         return echostr
     else:  # 主要功能
         data = request.get_data().decode('utf-8')
-        logger.info("post: data: %s" % data)
+        logger.info("post")
         handler = Handler(data)
         response = handler.get_response()
         return response
@@ -202,7 +202,7 @@ class Handler:
                 'url': "",
                 'title': "暂无新公告"
             }
-            return wechat.response_news(cardNoAnnounce)
+            return wechat.response_news([cardNoAnnounce])
         elif len(announcements) < 9:
             cardHead = {
                 'description': "",
@@ -281,7 +281,7 @@ def _get_globals():
     global _HOST_HTTP
     global _HOST_HTTPS
     _MY_IP = getip.myip()
-    _MY_PORT = "5000"
+    _MY_PORT = "8080"
     _HOST_HTTP = "http://%s:%s" % (_MY_IP, _MY_PORT)
     _HOST_HTTPS = "https://%s:%s" % (_MY_IP, _MY_PORT)
     logger.info("local address:%s" % _HOST_HTTP)
@@ -391,7 +391,7 @@ def main():
         _create_buttons()
     except:
         pass
-    app.run(host='0.0.0.0', use_debugger=True, use_reloader=False,port=8080)
+    app.run(host='0.0.0.0', use_debugger=True, use_reloader=False,port=int(_MY_PORT))
 
 
 if __name__ == '__main__':
