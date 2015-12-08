@@ -13,6 +13,8 @@ logging.basicConfig(level=logging.DEBUG)
 __logger = logging.getLogger(__name__)
 
 
+
+
 def push_new_items(items_dict, event_type):
     """
     if anything new in a course: file, message, work, etc
@@ -46,11 +48,7 @@ async def get_a_valid_user(course_id):
     :param course_id:
     :return: User
     """
-    user = database.get_a_user(course_id)
-    u = User(user['username'], user['password'])
-    try:
-        await u.login()
-    except RuntimeError:
+    async def update_user_for_course(course_id):
         for unkown_user in database.get_all_users(course_id):
             try:
                 await User(unkown_user['username'], unkown_user['password']).login()
@@ -64,6 +62,16 @@ async def get_a_valid_user(course_id):
         else:
             # for loop done and no one is valid
             return None
+
+    user = database.get_a_user(course_id)
+    if user is None:
+        return await update_user_for_course(course_id)
+
+    u = User(user['username'], user['password'])
+    try:
+        await u.login()
+    except RuntimeError:
+        return await update_user_for_course(course_id)
     else:
         # valid user
         return u
@@ -82,7 +90,6 @@ async def update_courses():
     courses = []
     for course_id in existing_courses_ids:
         user = await get_a_valid_user(course_id)
-        print((user.username, course_id))
         if user is None:
             continue
         else:
@@ -92,7 +99,7 @@ async def update_courses():
     works = list(chain(*await asyncio.gather(*[course.works for course in courses])))
     messages = list(chain(*await asyncio.gather(*[course.messages for course in courses])))
 
-    # pick out the new messages and works (which are not in database yet)
+    # pick out the new messages and works (whose ids are not in database yet)
     existing_works_ids = database.get_all_works()
     existing_messages_ids = database.get_all_messages()
     works_to_append = set()

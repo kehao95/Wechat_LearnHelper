@@ -28,6 +28,7 @@ _APP_SECRET = ""
 _APP_ID = ""
 _APP_BUTTONS = ""
 _TEMPLATE_SUCCESS = ""
+_TEMPLATE_BIND_SUCCESS = ""
 _TEMPLATE_HOMEWORK = ""
 _TEMPLATE_ANNOUNCEMENT = ""
 _URL_BASE = ""
@@ -89,6 +90,15 @@ def show_homework():
 
 @app.route('/bind', methods=['GET', 'POST'])
 def bind_student_account():
+    """
+    handle user binding event
+    for get request (ask for bind) return the binding page
+    for post request (user send user name and password)
+        check the validation of id&pass
+        add to newuser file
+        give user success message
+    :return:
+    """
     def check_vaild(username, password):
         data = dict(
             userid=username,
@@ -126,6 +136,7 @@ def bind_student_account():
         }
         newusers.append(newuser)
         json.dump(newusers, open("newusers.json", 'w'))
+        send_bind_success_message(openID, studentID)
     return jsonify({"result": result})
 
 
@@ -143,6 +154,7 @@ def push_messages():
     openidlist = map(lambda x: x["openid"], data["users"])
     if push_type == "register_done":
         for user in data['users']:
+            database.set_status_by_openid(user['openid'],database.STATUS_OK)
             send_success_message(user['openid'], user['username'])
     elif push_type == "new_messages":
         send_new_announcement(openidlist, data["data"])
@@ -153,7 +165,7 @@ def push_messages():
 
 class Handler:
     """
-    消息处理类，对每人次消息构造一次各方法共用消息的基本信息
+    消息处理类，对每次微信服务器消息构造一次，各方法共用消息的基本信息
     函数共用user信息使得个性化响应更方便友好
     """
     global wechat
@@ -167,32 +179,48 @@ class Handler:
         self.openID = self.message.source
 
     def response_bind(self) -> str:
-        isalreadybinded = database.isOpenIDBound(self.openID)
-        if isalreadybinded:
-            return wechat.response_text(content="您已经绑定过学号了。")
+        userstatus = database.get_status_by_openid(self.openID)
+        if userstatus == database.STATUS_WAITING or userstatus == database.STATUS_OK:
+            return wechat.response_text(content="您已经绑定过学号。")
+        elif userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
+            pass
         card = {
-            'description': "用户:%s" % self.openID,
+            'description': "点击进入绑定页面",
             'url': "%s/bind?openID=%s" % (_HOST_HTTP, self.openID),
             'title': "绑定"
         }
         return wechat.response_news([card])
 
-    def response_homework(self) -> str:
-        isalreadybinded = database.isOpenIDBound(self.openID)
-        if not isalreadybinded:
+    def response_unbind(self) -> str:
+        userstatus = database.get_status_by_openid(self.openID)
+        if userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
             return wechat.response_text(content="您还未绑定过学号。")
-        else:
+        elif userstatus == database.STATUS_WAITING or userstatus == database.STATUS_OK:
+            database.unbind_user_openID(self.openID)
+            return wechat.response_text(content="您已成功解除绑定。")
+
+    def response_homework(self) -> str:
+        userstatus = database.get_status_by_openid(self.openID)
+        if userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
+            return wechat.response_text(content="您还未绑定过学号。")
+        elif userstatus == database.STATUS_WAITING:
+            return wechat.response_text(content="正在为您开启服务，请在服务开启后查询。")
+        elif userstatus == database.STATUS_OK:
             card = {
-                'description': "用户:%s" % self.openID,
+                'description': "点击查看所有未截止作业",
                 'url': "%s/homework?openID=%s" % (_HOST_HTTP, self.openID),
                 'title': "作业"
             }
             return wechat.response_news([card])
 
     def response_announce(self) -> str:
-        isalreadybinded = database.isOpenIDBound(self.openID)  # functionA(openID)
-        if not isalreadybinded:
+        userstatus = database.get_status_by_openid(self.openID)
+        if userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
             return wechat.response_text(content="您还未绑定过学号。")
+        elif userstatus == database.STATUS_WAITING:
+            return wechat.response_text(content="正在为您开启服务，请在服务开启后查询。")
+        elif userstatus == database.STATUS_OK:
+            pass
         announcements = database.get_messages_in_days(self.openID, 30)
         announcements.sort(key=lambda x: x["_Time"], reverse=True)
         cardList = []
@@ -241,7 +269,7 @@ class Handler:
             elif "公告" in content:
                 response = self.response_announce()
             elif "解除绑定" in content:
-                response = wechat.response_text(content="此功能暂时未开发")
+                response = self.response_unbind()
             else:
                 response = wechat.response_text(content="Echo:%s" % content)
         elif isinstance(self.message, EventMessage):
@@ -256,7 +284,7 @@ class Handler:
                 elif key == "HOMEWORK":
                     response = self.response_homework()
                 elif key == "UNBIND":
-                    response = wechat.response_text(content="此功能暂时未开发")
+                    response = self.response_unbind()
                 else:
                     pass
             elif type == "templatesendjobfinish":
@@ -275,29 +303,14 @@ def _get_globals():
     logger = logging.getLogger(__name__)
     logger.debug("Debug Mode On")
     logger.info("Info On")
-    # get ip
-    global _MY_IP
-    global _MY_PORT
-    global _HOST_HTTP
-    global _HOST_HTTPS
-    _MY_IP = getip.myip()
-    _MY_PORT = "8080"
-    _HOST_HTTP = "http://%s:%s" % (_MY_IP, _MY_PORT)
-    _HOST_HTTPS = "https://%s:%s" % (_MY_IP, _MY_PORT)
-    logger.info("local address:%s" % _HOST_HTTP)
-    with open("address.txt", 'w') as f:
-        f.write(_HOST_HTTP + "/push")
-    # thu learn urls
-    global _URL_BASE
-    global _URL_LOGIN
-    _URL_BASE = 'https://learn.tsinghua.edu.cn'
-    _URL_LOGIN = _URL_BASE + '/MultiLanguage/lesson/teacher/loginteacher.jsp'
+
     # get app secrets
     global _APP_ID
     global _APP_SECRET
     global _APP_TOKEN
     global _APP_BUTTONS
     global _TEMPLATE_SUCCESS
+    global _TEMPLATE_BIND_SUCCESS
     global _TEMPLATE_HOMEWORK
     global _TEMPLATE_ANNOUNCEMENT
     secrets = json.loads(open(".secret.json", "r").read())
@@ -308,8 +321,27 @@ def _get_globals():
     _APP_SECRET = app['appsecret']
     _APP_BUTTONS = app['buttons']
     _TEMPLATE_SUCCESS = app['successTemplate']
+    _TEMPLATE_BIND_SUCCESS = app['bindsuccessTemplate']
     _TEMPLATE_HOMEWORK = app['homeworkTemplate']
     _TEMPLATE_ANNOUNCEMENT = app['announcementTemplate']
+    # get ip
+    global _MY_IP
+    global _MY_PORT
+    global _HOST_HTTP
+    global _HOST_HTTPS
+    _MY_IP = getip.myip()
+    _MY_PORT = secrets["server"]["port"]
+    _HOST_HTTP = "http://%s:%s" % (_MY_IP, _MY_PORT)
+    _HOST_HTTPS = "https://%s:%s" % (_MY_IP, _MY_PORT)
+    logger.info("local address:%s" % _HOST_HTTP)
+    with open("address.txt", 'w') as f:
+        f.write(_HOST_HTTP + "/push")
+    # thu learn urls
+    global _URL_BASE
+    global _URL_LOGIN
+    _URL_BASE = 'https://learn.tsinghua.edu.cn'
+    _URL_LOGIN = _URL_BASE + '/MultiLanguage/lesson/teacher/loginteacher.jsp'
+
     # wechat
     global wechat
     wechat = WechatBasic(token=_APP_TOKEN, appid=_APP_ID, appsecret=_APP_SECRET)
@@ -337,6 +369,16 @@ def send_success_message(openID, studentnumber):
         }
     }
     wechat.send_template_message(user_id=openID, template_id=_TEMPLATE_SUCCESS, data=pushdata, url="")
+
+
+def send_bind_success_message(openID, studentnumber):
+    pushdata = {
+        "studentnumber": {
+            "value": studentnumber,
+            "color": "#ff0000"
+        }
+    }
+    wechat.send_template_message(user_id=openID, template_id=_TEMPLATE_BIND_SUCCESS, data=pushdata, url="")
 
 
 def send_new_homework(openIDs, homework):
@@ -391,7 +433,7 @@ def main():
         _create_buttons()
     except:
         pass
-    app.run(host='0.0.0.0', use_debugger=True, use_reloader=False,port=int(_MY_PORT))
+    app.run(host='0.0.0.0', use_debugger=True, use_reloader=False, port=_MY_PORT)
 
 
 if __name__ == '__main__':
