@@ -275,23 +275,6 @@ def _get_globals():
     logger = logging.getLogger(__name__)
     logger.debug("Debug Mode On")
     logger.info("Info On")
-    # get ip
-    global _MY_IP
-    global _MY_PORT
-    global _HOST_HTTP
-    global _HOST_HTTPS
-    _MY_IP = getip.myip()
-    _MY_PORT = "5000"
-    _HOST_HTTP = "http://%s:%s" % (_MY_IP, _MY_PORT)
-    _HOST_HTTPS = "https://%s:%s" % (_MY_IP, _MY_PORT)
-    logger.info("local address:%s" % _HOST_HTTP)
-    with open("address.txt", 'w') as f:
-        f.write(_HOST_HTTP + "/push")
-    # thu learn urls
-    global _URL_BASE
-    global _URL_LOGIN
-    _URL_BASE = 'https://learn.tsinghua.edu.cn'
-    _URL_LOGIN = _URL_BASE + '/MultiLanguage/lesson/teacher/loginteacher.jsp'
     # get app secrets
     global _APP_ID
     global _APP_SECRET
@@ -310,6 +293,24 @@ def _get_globals():
     _TEMPLATE_SUCCESS = app['successTemplate']
     _TEMPLATE_HOMEWORK = app['homeworkTemplate']
     _TEMPLATE_ANNOUNCEMENT = app['announcementTemplate']
+    # get ip
+    global _MY_IP
+    global _MY_PORT
+    global _HOST_HTTP
+    global _HOST_HTTPS
+    _MY_IP = getip.myip()
+    _MY_PORT = secrets["server"]["port"]
+    _HOST_HTTP = "http://%s:%s" % (_MY_IP, _MY_PORT)
+    _HOST_HTTPS = "https://%s:%s" % (_MY_IP, _MY_PORT)
+    logger.info("local address:%s" % _HOST_HTTP)
+    with open("address.txt", 'w') as f:
+        f.write(_HOST_HTTP + "/push")
+    # thu learn urls
+    global _URL_BASE
+    global _URL_LOGIN
+    _URL_BASE = 'https://learn.tsinghua.edu.cn'
+    _URL_LOGIN = _URL_BASE + '/MultiLanguage/lesson/teacher/loginteacher.jsp'
+
     # wechat
     global wechat
     wechat = WechatBasic(token=_APP_TOKEN, appid=_APP_ID, appsecret=_APP_SECRET)
@@ -391,7 +392,7 @@ def main():
         _create_buttons()
     except:
         pass
-    app.run(host='0.0.0.0', use_debugger=True, use_reloader=False,port=8080)
+    app.run(host='0.0.0.0', use_debugger=True, use_reloader=False, port=_MY_PORT)
 
 
 if __name__ == '__main__':
