@@ -17,11 +17,17 @@ License URL: http://creativecommons.org/licenses/by/3.0/
 /*-- Fonts --*/
 
 /*-- Index-Page-Styling --*/
+html {
+  background: url('../images/bg.png') no-repeat center center fixed;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+}
 body {
 	position: fixed;
 	width: 100%;
 	height: 100%;
-    background: url('../images/bg.png');
 }
 h1 {
     text-align: center;
