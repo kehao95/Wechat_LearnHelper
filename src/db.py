@@ -83,12 +83,12 @@ class Database:
 
         cur = self.cnx.cursor()
 
-        cur.execute(self.S_BUILD_COURSENAME)
-        cur.execute(self.S_BUILD_MESSAGE)
-        cur.execute(self.S_BUILD_WORK)
-        cur.execute(self.S_BUILD_USERINFO)
-        cur.execute(self.S_BUILD_USERCOURSE)
-        cur.execute(self.S_BUILD_WORKFINISHED)
+        cur.execute(S_BUILD_COURSENAME)
+        cur.execute(S_BUILD_MESSAGE)
+        cur.execute(S_BUILD_WORK)
+        cur.execute(S_BUILD_USERINFO)
+        cur.execute(S_BUILD_USERCOURSE)
+        cur.execute(S_BUILD_WORKFINISHED)
         # cur.execute(self.S_SET_UTF8, (self.S_DATABASE_NAME,))
         self.cnx.commit()
 
@@ -137,28 +137,29 @@ class Database:
 
     def set_status_by_openid(self, openID, status):
         cur = self.cnx.cursor()
-        cur.execute(self.S_SET_STATUS_BY_OPENID, (status,openID))
+        cur.execute(self.S_SET_STATUS_BY_OPENID, (status, openID))
 
     def set_status_by_username(self, uid, status):
         cur = self.cnx.cursor()
-        cur.execute(self.S_SET_STATUS_BY_UID, (status,uid))
+        cur.execute(self.S_SET_STATUS_BY_UID, (status, uid))
 
     # 从openid获取是否就绪
-    def isOpenIDAvailable(self,openID):
+    def isOpenIDAvailable(self, openID):
         return self.get_status_by_openid(openID) == self.STATUS_OK
 
     # 从openid获取是否已经被绑定
     def isOpenIDBound(self, openID):
         r = self.get_status_by_openid(openID)
-        return  r == self.STATUS_OK or r == self.STATUS_WAITING
+        return r == self.STATUS_OK or r == self.STATUS_WAITING
 
     def set_openid_ok(self, openID):
         self.set_status_by_openid(openID, self.STATUS_OK)
 
     def set_openid_delete(self, openID):
-        self.set_status_by_openid(openID, self.STATUS_OK)        
+        self.set_status_by_openid(openID, self.STATUS_OK)
 
-    # 初始化调用，获取课程名称
+        # 初始化调用，获取课程名称
+
     def courseNameLoad(self):
         cur = self.cnx.cursor()
         cur.execute(self.S_GET_COURSENAME)
@@ -172,17 +173,17 @@ class Database:
         if r == self.STATUS_OK or r == self.STATUS_WAITING:
             return 2
         elif r == self.STATUS_DELETE:
-            cur.execute(self.S_CHANGE_USER_BY_UID, (upd,self.key, openID,uid))
-            #logging.debug("find uid delete")
+            cur.execute(self.S_CHANGE_USER_BY_UID, (upd, self.key, openID, uid))
+            # logging.debug("find uid delete")
         elif r == self.STATUS_NOT_FOUND:
-            if self.get_status_by_openid(openID) == self.STATUS_NOT_FOUND :
-                #logging.debug("no openid")
+            if self.get_status_by_openid(openID) == self.STATUS_NOT_FOUND:
+                # logging.debug("no openid")
                 cur.execute(self.S_INSERT_USERINFO, (uid, upd, self.key, openID))
             else:
-                #logging.debug("find openid delete")
-                uid,upd = self.get_data_by_openid(openID)
-                cur.execute(self.S_DELETE_USERCOURSE_BY_USER(uid,))
-                cur.execute(self.S_CHANGE_USER_BY_OPENID, (uid,upd,self.key,openID))
+                # logging.debug("find openid delete")
+                uid, upd = self.get_data_by_openid(openID)
+                cur.execute(self.S_DELETE_USERCOURSE_BY_USER, (uid, ))
+                cur.execute(self.S_CHANGE_USER_BY_OPENID, (uid, upd, self.key, openID))
         self.cnx.commit()
         return 1 - cur.rowcount  # 0:success  1:database failure
 
@@ -197,19 +198,18 @@ class Database:
 
     # 把一条openid与userid的绑定信息标记为删除
     def unbind_user_openID(self, openID):
-        self.set_status_by_openid(openID,self.STATUS_DELETE)
+        self.set_status_by_openid(openID, self.STATUS_DELETE)
 
     def delete_user(self):
         cur = self.cnx.cursor()
         cur.execute(self.S_GET_DATA_DELETE_USER)
         cur2 = self.cnx.cursor()
-        for uid,openID in cur:
-            cur.execute(self.S_DELETE_USER,(uid,))
-            cur.execute(self.S_DELETE_USERCOURSE_BY_USER,(uid,))
+        for uid, openID in cur:
+            cur2.execute(self.S_DELETE_USER, (uid,))
+            cur2.execute(self.S_DELETE_USERCOURSE_BY_USER, (uid,))
 
     # 全部公告id的set
     def get_all_messages(self):
-        ret = []
         cur = self.cnx.cursor()
         cur.execute(self.S_GET_ALL_MID)
         ret = set(map(str, [mid for mid, in cur]))
@@ -217,7 +217,6 @@ class Database:
 
     # 全部作业id的set
     def get_all_works(self):
-        ret = []
         cur = self.cnx.cursor()
         cur.execute(self.S_GET_ALL_WID)
         ret = set(map(str, [cid for cid, in cur]))
@@ -227,7 +226,6 @@ class Database:
     # 1个int识别为userid, 返回user的课程id的set
     # 1个user-dict，userid为user['username']，返回user的课程id的set
     def get_all_courses(self, user=-1):
-        ret = []
         cur = self.cnx.cursor()
         if (user == -1):
             cur.execute(self.S_GET_ALL_CID)
@@ -307,24 +305,6 @@ class Database:
         self.cnx.commit()
 
     """
-    def store(self, d):
-        cur = self.cnx.cursor()
-        uid = int(d['_user']['username'])
-        cur.execute(self.S_GET_DATA_BY_OPENID, (d['_user']['openID'],))
-        for course in d['_courses']:
-            cid = course['_id']
-            cur.execute(self.S_INSERT_USERCOURSE, (uid, cid))
-            cur.execute(self.S_INSERT_COURSENAME, (cid, course['_name']))
-            for work in course['_works']:
-                cur.execute(self.S_INSERT_WORK, (work['_id'], cid, work['_end_time'], work['_title'], work['_details']))
-                if work['_submitted'] == True:
-                    cur.execute(self.S_INSERT_WORKFINISHED, (uid, work['_id']))
-            for msg in course['_messages']:
-                cur.execute(self.S_INSERT_MESSAGE, (msg['_id'], cid, msg['_date'], msg['_title'], msg['_details']))
-        self.cnx.commit()
-        #courseNameLoad()
-
-
     def get_all_messages(self, openID):
         ret = []
         uid, upd = self.get_data_from_openid(openID)
@@ -341,6 +321,7 @@ class Database:
                 ret.append(elem)
         return ret
     """
+
 
     def get_messages_in_days(self, openID, days):
         ret = []
