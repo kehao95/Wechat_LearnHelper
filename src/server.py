@@ -96,7 +96,7 @@ def bind_student_account():
         check the validation of id&pass
         add to newuser file
         give user success message
-    :return: 
+    :return:
     """
     def check_vaild(username, password):
         data = dict(
@@ -162,7 +162,7 @@ def push_messages():
 
 class Handler:
     """
-    消息处理类，对每人次消息构造一次各方法共用消息的基本信息
+    消息处理类，对每次微信服务器消息构造一次，各方法共用消息的基本信息
     函数共用user信息使得个性化响应更方便友好
     """
     global wechat

@@ -13,6 +13,8 @@ logging.basicConfig(level=logging.DEBUG)
 __logger = logging.getLogger(__name__)
 
 
+
+
 def push_new_items(items_dict, event_type):
     """
     if anything new in a course: file, message, work, etc
@@ -92,7 +94,7 @@ async def update_courses():
     works = list(chain(*await asyncio.gather(*[course.works for course in courses])))
     messages = list(chain(*await asyncio.gather(*[course.messages for course in courses])))
 
-    # pick out the new messages and works (which are not in database yet)
+    # pick out the new messages and works (whose ids are not in database yet)
     existing_works_ids = database.get_all_works()
     existing_messages_ids = database.get_all_messages()
     works_to_append = set()
