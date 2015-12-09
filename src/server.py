@@ -154,8 +154,9 @@ def push_messages():
     openidlist = map(lambda x: x["openid"], data["users"])
     if push_type == "register_done":
         for user in data['users']:
-            database.set_status_by_openid(user['openid'],database.STATUS_OK)
-            send_success_message(user['openid'], user['username'])
+            if database.get_status_by_openid(user['openid']) == database.STATUS_WAITING:
+                database.set_status_by_openid(user['openid'],database.STATUS_OK)
+                send_success_message(user['openid'], user['username'])
     elif push_type == "new_messages":
         send_new_announcement(openidlist, data["data"])
     elif push_type == "new_works":
@@ -202,9 +203,9 @@ class Handler:
     def response_homework(self) -> str:
         userstatus = database.get_status_by_openid(self.openID)
         if userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
-            return wechat.response_text(content="您还未绑定过学号。")
+            return wechat.response_text(content="您还未绑定过学号")
         elif userstatus == database.STATUS_WAITING:
-            return wechat.response_text(content="正在为您开启服务，请在服务开启后查询。")
+            return wechat.response_text(content="正在为您开启服务，一般不会超过一分钟，请在服务开启后查询")
         elif userstatus == database.STATUS_OK:
             card = {
                 'description': "点击查看所有未截止作业",
@@ -216,9 +217,9 @@ class Handler:
     def response_announce(self) -> str:
         userstatus = database.get_status_by_openid(self.openID)
         if userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
-            return wechat.response_text(content="您还未绑定过学号。")
+            return wechat.response_text(content="您还未绑定过学号")
         elif userstatus == database.STATUS_WAITING:
-            return wechat.response_text(content="正在为您开启服务，请在服务开启后查询。")
+            return wechat.response_text(content="正在为您开启服务，一般不会超过一分钟，请在服务开启后查询")
         elif userstatus == database.STATUS_OK:
             pass
         announcements = database.get_messages_in_days(self.openID, 30)
