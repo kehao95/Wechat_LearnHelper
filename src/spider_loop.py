@@ -156,7 +156,8 @@ async def main():
     while True:
         await update_courses()
         await update_completions()
-        await asyncio.sleep(10)
+        __logger.debug("wait for 10 seconds")
+        await asyncio.sleep(100)
 
 
 if __name__ == '__main__':
