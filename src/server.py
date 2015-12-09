@@ -28,6 +28,7 @@ _APP_SECRET = ""
 _APP_ID = ""
 _APP_BUTTONS = ""
 _TEMPLATE_SUCCESS = ""
+_TEMPLATE_BIND_SUCCESS = ""
 _TEMPLATE_HOMEWORK = ""
 _TEMPLATE_ANNOUNCEMENT = ""
 _URL_BASE = ""
@@ -57,7 +58,7 @@ def main_listener():
         return echostr
     else:  # 主要功能
         data = request.get_data().decode('utf-8')
-        logger.info("post: data: %s" % data)
+        logger.info("post")
         handler = Handler(data)
         response = handler.get_response()
         return response
@@ -116,26 +117,27 @@ def bind_student_account():
     if request.method == "POST":
         print("POST")
         logger.debug(request.form)
-        openID = request.form["openID"]
-        studentID = request.form["studentID"]
-        password = request.form["password"]
-        result = 0
-        if check_vaild(username=studentID, password=password) is not True:
-            result = 1
-        if result == 0:
-            newusers = []
-            try:
-                newusersdict = json.load(open("newusers.json", 'r'))
-            except:
-                logger.debug("could not open newusers.json")
-            newuser = {
-                "username": studentID,
-                "openid": openID,
-                "password": password
-            }
-            newusers.append(newuser)
-            json.dump(newusers, open("newusers.json", 'w'))
-        return jsonify({"result": result})
+    openID = request.form["openID"]
+    studentID = request.form["studentID"]
+    password = request.form["password"]
+    result = 0
+    if check_vaild(username=studentID, password=password) is not True:
+        result = 1
+    if result == 0:
+        newusers = []
+        try:
+            newusersdict = json.load(open("newusers.json", 'r'))
+        except:
+            logger.debug("could not open newusers.json")
+        newuser = {
+            "username": studentID,
+            "openid": openID,
+            "password": password
+        }
+        newusers.append(newuser)
+        json.dump(newusers, open("newusers.json", 'w'))
+        send_bind_success_message(openID, studentID)
+    return jsonify({"result": result})
 
 
 @app.route('/push', methods=["POST"])
@@ -152,6 +154,7 @@ def push_messages():
     openidlist = map(lambda x: x["openid"], data["users"])
     if push_type == "register_done":
         for user in data['users']:
+            database.set_status_by_openid(user['openid'],database.STATUS_OK)
             send_success_message(user['openid'], user['username'])
     elif push_type == "new_messages":
         send_new_announcement(openidlist, data["data"])
@@ -176,32 +179,48 @@ class Handler:
         self.openID = self.message.source
 
     def response_bind(self) -> str:
-        isalreadybinded = database.isOpenIDBound(self.openID)
-        if isalreadybinded:
-            return wechat.response_text(content="您已经绑定过学号了。")
+        userstatus = database.get_status_by_openid(self.openID)
+        if userstatus == database.STATUS_WAITING or userstatus == database.STATUS_OK:
+            return wechat.response_text(content="您已经绑定过学号。")
+        elif userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
+            pass
         card = {
-            'description': "用户:%s" % self.openID,
+            'description': "点击进入绑定页面",
             'url': "%s/bind?openID=%s" % (_HOST_HTTP, self.openID),
             'title': "绑定"
         }
         return wechat.response_news([card])
 
-    def response_homework(self) -> str:
-        isalreadybinded = database.isOpenIDBound(self.openID)
-        if not isalreadybinded:
+    def response_unbind(self) -> str:
+        userstatus = database.get_status_by_openid(self.openID)
+        if userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
             return wechat.response_text(content="您还未绑定过学号。")
-        else:
+        elif userstatus == database.STATUS_WAITING or userstatus == database.STATUS_OK:
+            database.unbind_user_openID(self.openID)
+            return wechat.response_text(content="您已成功解除绑定。")
+
+    def response_homework(self) -> str:
+        userstatus = database.get_status_by_openid(self.openID)
+        if userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
+            return wechat.response_text(content="您还未绑定过学号。")
+        elif userstatus == database.STATUS_WAITING:
+            return wechat.response_text(content="正在为您开启服务，请在服务开启后查询。")
+        elif userstatus == database.STATUS_OK:
             card = {
-                'description': "用户:%s" % self.openID,
+                'description': "点击查看所有未截止作业",
                 'url': "%s/homework?openID=%s" % (_HOST_HTTP, self.openID),
                 'title': "作业"
             }
             return wechat.response_news([card])
 
     def response_announce(self) -> str:
-        isalreadybinded = database.isOpenIDBound(self.openID)  # functionA(openID)
-        if not isalreadybinded:
+        userstatus = database.get_status_by_openid(self.openID)
+        if userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
             return wechat.response_text(content="您还未绑定过学号。")
+        elif userstatus == database.STATUS_WAITING:
+            return wechat.response_text(content="正在为您开启服务，请在服务开启后查询。")
+        elif userstatus == database.STATUS_OK:
+            pass
         announcements = database.get_messages_in_days(self.openID, 30)
         announcements.sort(key=lambda x: x["_Time"], reverse=True)
         cardList = []
@@ -211,7 +230,7 @@ class Handler:
                 'url': "",
                 'title': "暂无新公告"
             }
-            return wechat.response_news(cardNoAnnounce)
+            return wechat.response_news([cardNoAnnounce])
         elif len(announcements) < 9:
             cardHead = {
                 'description': "",
@@ -250,7 +269,7 @@ class Handler:
             elif "公告" in content:
                 response = self.response_announce()
             elif "解除绑定" in content:
-                response = wechat.response_text(content="此功能暂时未开发")
+                response = self.response_unbind()
             else:
                 response = wechat.response_text(content="Echo:%s" % content)
         elif isinstance(self.message, EventMessage):
@@ -265,7 +284,7 @@ class Handler:
                 elif key == "HOMEWORK":
                     response = self.response_homework()
                 elif key == "UNBIND":
-                    response = wechat.response_text(content="此功能暂时未开发")
+                    response = self.response_unbind()
                 else:
                     pass
             elif type == "templatesendjobfinish":
@@ -284,12 +303,14 @@ def _get_globals():
     logger = logging.getLogger(__name__)
     logger.debug("Debug Mode On")
     logger.info("Info On")
+
     # get app secrets
     global _APP_ID
     global _APP_SECRET
     global _APP_TOKEN
     global _APP_BUTTONS
     global _TEMPLATE_SUCCESS
+    global _TEMPLATE_BIND_SUCCESS
     global _TEMPLATE_HOMEWORK
     global _TEMPLATE_ANNOUNCEMENT
     secrets = json.loads(open(".secret.json", "r").read())
@@ -300,6 +321,7 @@ def _get_globals():
     _APP_SECRET = app['appsecret']
     _APP_BUTTONS = app['buttons']
     _TEMPLATE_SUCCESS = app['successTemplate']
+    _TEMPLATE_BIND_SUCCESS = app['bindsuccessTemplate']
     _TEMPLATE_HOMEWORK = app['homeworkTemplate']
     _TEMPLATE_ANNOUNCEMENT = app['announcementTemplate']
     # get ip
@@ -347,6 +369,16 @@ def send_success_message(openID, studentnumber):
         }
     }
     wechat.send_template_message(user_id=openID, template_id=_TEMPLATE_SUCCESS, data=pushdata, url="")
+
+
+def send_bind_success_message(openID, studentnumber):
+    pushdata = {
+        "studentnumber": {
+            "value": studentnumber,
+            "color": "#ff0000"
+        }
+    }
+    wechat.send_template_message(user_id=openID, template_id=_TEMPLATE_BIND_SUCCESS, data=pushdata, url="")
 
 
 def send_new_homework(openIDs, homework):

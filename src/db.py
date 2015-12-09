@@ -20,6 +20,7 @@ class Database:
     S_GET_MSG_IN_DAYS = "SELECT SQL_NO_CACHE CID,Time,Title,Text FROM Message WHERE CID = %s AND DATE_SUB(CURDATE(),INTERVAL %s DAY) <= date(Time)"
     # S_GET_WORK_BY_CID = "SELECT SQL_NO_CACHE CID,EndTime,Title,Text WHERE CID = %s"
     S_GET_COURSENAME = "SELECT SQL_NO_CACHE CID,Name FROM CourseName"
+    S_GET_COURSENAME_BY_UID = "SELECT SQL_NO_CACHE Name FROM CourseName WHERE CID = %s"
     S_GET_NAME_FROM_CID = "SELECT SQL_NO_CACHE Name FROM CourseName WHERE CID = %s"
     S_GET_WORK_AFTER = "SELECT SQL_NO_CACHE CID,EndTime,Title,WID,Text FROM Work WHERE CID = %s AND EndTime > DATE(%s)"
     S_GET_ALL_USER = "SELECT SQL_NO_CACHE UID, AES_DECRYPT(UPd,%s), OpenID FROM UserInfo"
@@ -56,7 +57,7 @@ class Database:
     cnx = None
     key = "salt"  # AES加密用到的密钥
 
-    courseNameDict = {}  # 缓存的课程名称【待处理】
+    #courseNameDict = {}  # 缓存的课程名称【待处理】
 
     # mysql用户名，mysql密码，数据库，密钥，主机地址
     def __init__(self, username, password, database, salt='salt', address='127.0.0.1'):
@@ -65,7 +66,7 @@ class Database:
                                    charset="utf8")
         self.cnx.autocommit(True)
         logging.debug("connection established")
-        self.courseNameLoad()
+        #self.courseNameLoad()
         self.key = salt
 
     # 特殊函数，在已有的thu_learn数据库中建立表单
@@ -101,10 +102,11 @@ class Database:
         return {'username': uid, 'password': upd.decode('utf8'), 'openid': openid}
 
     def get_course_name(self, cid):
-        try:
-            return self.courseNameDict[int(cid)]
-        except:
-            return ""
+        cur = self.cnx.cursor()
+        cur.execute(self.S_GET_COURSENAME_BY_UID, (cid,))
+        for i, in cur:
+            return i
+        return ""
 
     # 从openid获取 （用户名，密码）
     def get_data_by_openid(self, openID):
@@ -160,11 +162,11 @@ class Database:
 
         # 初始化调用，获取课程名称
 
-    def courseNameLoad(self):
-        cur = self.cnx.cursor()
-        cur.execute(self.S_GET_COURSENAME)
-        for cid, name in cur:
-            self.courseNameDict[cid] = name
+#    def courseNameLoad(self):
+#        cur = self.cnx.cursor()
+#        cur.execute(self.S_GET_COURSENAME)
+#        for cid, name in cur:
+#            Database.courseNameDict[cid] = name
 
     # 绑定openid和uid以及upd
     def bind_user_openID(self, uid, upd, openID):
@@ -271,7 +273,7 @@ class Database:
             uid = course['user']['username']
             cur.execute(self.S_INSERT_COURSENAME, (course['id'], course['name'], uid))
             # cur.execute(self.S_INSERT_USERCOURSE, (course['id'],uid))
-            self.courseNameDict[course['id']] = course['name']
+            #Database.courseNameDict[course['id']] = course['name']
         self.cnx.commit()
 
     # [(uid,cid)]
@@ -335,7 +337,7 @@ class Database:
             curM.execute(self.S_GET_MSG_IN_DAYS, (course[0], days))
             for msg in curM:
                 # CID,Time,Title,Text
-                elem = {'_Time': msg[1], '_Title': msg[2], '_CourseName': self.courseNameDict[msg[0]], '_Text': msg[3]}
+                elem = {'_Time': msg[1], '_Title': msg[2], '_CourseName': self.get_course_name([msg[0]]), '_Text': msg[3]}
                 ret.append(elem)
         return ret
 
@@ -358,7 +360,7 @@ class Database:
             for work in curW:
                 # print(work)
                 # CID,EndTime,Title,WID,Text
-                elem = {'_EndTime': work[1], '_CourseName': self.courseNameDict[work[0]], '_Title': work[2],
+                elem = {'_EndTime': work[1], '_CourseName': self.get_course_name([work[0]]), '_Title': work[2],
                         '_Finished': self.is_work_finished(uid, work[3]), '_Text': work[4]}
                 ret.append(elem)
         return ret
