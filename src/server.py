@@ -205,7 +205,7 @@ class Handler:
         if userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
             return wechat.response_text(content="您还未绑定过学号")
         elif userstatus == database.STATUS_WAITING:
-            return wechat.response_text(content="正在为您开启服务，一般不会超过一分钟，请在服务开启后查询")
+            return wechat.response_text(content="正在为您开启服务，此过程不会超过一分钟，请在收到提示后查询")
         elif userstatus == database.STATUS_OK:
             card = {
                 'description': "点击查看所有未截止作业",

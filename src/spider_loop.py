@@ -84,7 +84,7 @@ async def update_courses():
     pick out the new ones
     :return:
     """
-
+    __logger.debug("update_courses")
     # prepare a valid user for each course
     existing_courses_ids = database.get_all_courses()
     courses = []
@@ -94,6 +94,7 @@ async def update_courses():
             continue
         else:
             courses.append(Course(user, course_id))
+    __logger.debug("courses:%d" % len(courses))
 
     # fetch all works and messages of every course
     works = list(chain(*await asyncio.gather(*[course.works for course in courses])))
@@ -156,8 +157,8 @@ async def main():
     while True:
         await update_courses()
         await update_completions()
-        __logger.debug("wait for 10 seconds")
-        await asyncio.sleep(100)
+        __logger.debug("wait for 20 seconds")
+        await asyncio.sleep(20)
 
 
 if __name__ == '__main__':
