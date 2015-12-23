@@ -16,13 +16,14 @@ class Database:
     S_GET_CID_BY_UID = "SELECT SQL_NO_CACHE CID FROM UserCourse WHERE UID = %s"
     S_GET_USERS_BY_CID = "SELECT SQL_NO_CACHE UserInfo.UID,AES_DECRYPT(UserInfo.UPd,%s),UserInfo.OpenID FROM UserCourse,UserInfo WHERE UserInfo.UID=UserCourse.UID AND UserCourse.CID=%s"
     S_GET_A_USER_BY_CID = "SELECT SQL_NO_CACHE UserInfo.UID,AES_DECRYPT(UserInfo.UPd,%s),UserInfo.OpenID FROM CourseName,UserInfo WHERE UserInfo.UID=CourseName.UID AND CourseName.CID=%s"
+    S_GET_MSG_BY_MID = "SELECT SQL_NO_CACHE CID,Time,Title,Text FROM Message WHERE MID = %s"
     S_GET_MSG_BY_CID = "SELECT SQL_NO_CACHE CID,Time,Title,Text FROM Message WHERE CID = %s"
-    S_GET_MSG_IN_DAYS = "SELECT SQL_NO_CACHE CID,Time,Title,Text FROM Message WHERE CID = %s AND DATE_SUB(CURDATE(),INTERVAL %s DAY) <= date(Time)"
+    S_GET_MSG_IN_DAYS = "SELECT SQL_NO_CACHE CID,Time,Title,Text,MID FROM Message WHERE CID = %s AND DATE_SUB(CURDATE(),INTERVAL %s DAY) <= date(Time)"
     # S_GET_WORK_BY_CID = "SELECT SQL_NO_CACHE CID,EndTime,Title,Text WHERE CID = %s"
     S_GET_COURSENAME = "SELECT SQL_NO_CACHE CID,Name FROM CourseName"
     S_GET_COURSENAME_BY_UID = "SELECT SQL_NO_CACHE Name FROM CourseName WHERE CID = %s"
     S_GET_NAME_FROM_CID = "SELECT SQL_NO_CACHE Name FROM CourseName WHERE CID = %s"
-    S_GET_WORK_AFTER = "SELECT SQL_NO_CACHE CID,EndTime,Title,WID,Text FROM Work WHERE CID = %s AND EndTime > DATE(%s)"
+    S_GET_WORK_AFTER = "SELECT SQL_NO_CACHE CID,EndTime,Title,WID,Text FROM Work WHERE CID = %s AND EndTime >= DATE(%s)"
     S_GET_ALL_USER = "SELECT SQL_NO_CACHE UID, AES_DECRYPT(UPd,%s), OpenID FROM UserInfo"
     S_GET_ALL_UID = "SELECT SQL_NO_CACHE UID FROM UserInfo"
     S_GET_ALL_MID = "SELECT SQL_NO_CACHE MID FROM Message"
@@ -339,10 +340,18 @@ class Database:
                 continue
             curM.execute(self.S_GET_MSG_IN_DAYS, (course[0], days))
             for msg in curM:
-                # CID,Time,Title,Text
-                elem = {'_Time': msg[1], '_Title': msg[2], '_CourseName': self.get_course_name([msg[0]]), '_Text': msg[3]}
+                # CID,Time,Title,Text,MID
+                elem = {'_Time': msg[1], '_Title': msg[2], '_CourseName': self.get_course_name([msg[0]]), '_Text': msg[3], '_ID': msg[4]}
                 ret.append(elem)
         return ret
+
+    def get_message_by_id(self, mid):
+        cur = self.cnx.cursor()
+        cur.execute(self.S_GET_MSG_BY_MID, (mid,))
+        for msg in cur:
+            # CID,Time,Title,Text
+            elem = {'_Time': msg[1], '_Title': msg[2], '_CourseName': self.get_course_name([msg[0]]), '_Text': msg[3]}
+            return elem
 
     def is_work_finished(self, uid, wid):
         cur = self.cnx.cursor()
