@@ -3,7 +3,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>课程公告</title>
+  <title>{{ coursename }}:课程公告</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   
 	<link rel="stylesheet" type="text/css" href="{{url_for("static", filename="css/normalize.css")}}">
@@ -19,7 +19,7 @@
       <div class="w-nav navbar" data-collapse="all" data-animation="over-left" data-duration="400" data-contain="1" data-easing="ease-out-quint" data-no-scroll="1">
         <div class="w-container">
           <div class="wrapper-mask" data-ix="menu-mask"></div>
-          <div class="navbar-title">课程公告</div>
+          <div class="navbar-title">{{ coursename }}<br/>课程公告</div>
          
         </div>
       </div>
@@ -29,35 +29,42 @@
             <h2>课程公告</h2>
             <div class="sub-title-small">0/2 已读</div>
           </div>
-          <div class="hero-image-img"><img src="images/photo-1429032021766-c6a53949594f.jpg">
+          <div class="hero-image-img"><img src={{url_for("static", filename="images/photo1.jpg")}}>
           </div>
         </div>
       </div>
-      <div class = "item-list-container-highlighted">
-        <span class="icon-list highlighted">
-                <div class="icon ion-ios-checkmark-empty"></div>
-        </span>
-        <div class = "text-container"> 
-        <span class = "text-field"> 
-        这是个已读公告的模板
-        </span>
-        </div>
-      </div>
-      <div class="h_line"></div> 
-
-
-
-      <div class = "item-list-container">
-        <span class="icon-list">
-                <div class="icon ion-ios-checkmark-empty"></div>
-              </span>  
-        <div class = "text-container"> 
-        <span class = "text-field"> 
-        这是个未读公告的模板
-        </span>
-        </div>
-      </div>
-      <div class="h_line"></div> 
+        {% for anc in announcements %}
+            <a href={{ url_for("show_detail_announcement", announcementID=anc["_ID"]) }}>
+            {% if anc["_AlreadyRead"] %}
+            <!-- anc which is already read -->
+            <div class = "item-list-container-highlighted">
+                <span class="icon-list highlighted">
+                    <div class="icon ion-ios-checkmark-empty"></div>
+                </span>
+                <div class = "text-container">
+                    <span class = "text-field">
+                        <p>{{ anc["_Time"] }}</p>
+                        <p>{{ anc["_Title"] }}</p>
+                    </span>
+                </div>
+            </div>
+            {% else %}
+            <!-- anc which is not read yet -->
+            <div class = "item-list-container">
+                <span class="icon-list">
+                    <div class="icon ion-ios-checkmark-empty"></div>
+                </span>
+                <div class = "text-container">
+                    <span class = "text-field">
+                        <p>{{ anc["_Time"] }}</p>
+                        <p>{{ anc["_Title"] }}</p>
+                    </span>
+                </div>
+            </div>
+            {% endif %}
+            </a>
+        <div class="h_line"></div>
+        {% endfor %}
     </div>
     <div class="page-content loading-mask" id="new-stack">
       <div class="loading-icon">

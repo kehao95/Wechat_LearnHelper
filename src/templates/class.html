@@ -3,7 +3,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>课程公告</title>
+  <title>课程列表</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   
 	<link rel="stylesheet" type="text/css" href="{{url_for("static", filename="css/normalize.css")}}">
@@ -19,34 +19,35 @@
       <div class="w-nav navbar" data-collapse="all" data-animation="over-left" data-duration="400" data-contain="1" data-easing="ease-out-quint" data-no-scroll="1">
         <div class="w-container">
           <div class="wrapper-mask" data-ix="menu-mask"></div>
-          <div class="navbar-title">课程公告</div>
+          <div class="navbar-title">课程列表</div>
          
         </div>
       </div>
       <div class="body">
         <div class="hero-image">
           <div class="hero-image-title">
-            <h2>课程公告</h2>
+            <h2>课程列表</h2>
             <div class="sub-title-small">共10门课程</div>
           </div>
-          <div class="hero-image-img"><img src="images/photo-1429032021766-c6a53949594f.jpg">
+          <div class="hero-image-img"><img src={{url_for("static", filename="images/photo1.jpg")}}>
           </div>
         </div>
       </div>
-
-
-
+        {% for course in courses %}
+            <a href={{ url_for("show_announcements_of_a_course", courseID = course["_ID"]) }}>
       <div class = "item-list-container">
         <span class="icon-list">
               <img src="images/redbutton.png"/>
         </span>  
         <div class = "text-container-class"> 
         <span class = "text-field"> 
-        这是个未读公告的模板
+        {{ course["_CourseName"] }}
         </span>
         </div>
       </div>
-      <div class="h_line"></div> 
+      <div class="h_line"></div>
+            </a>
+        {% endfor %}
     </div>
     <div class="page-content loading-mask" id="new-stack">
       <div class="loading-icon">

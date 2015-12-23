@@ -88,9 +88,8 @@ def show_homework():
     return render_template("homeworklist.html", openID=openID, homeworks=homeworks)
 
 
-@app.route('/announcement')
-def show_whole_announcement():
-    announcementID = request.args.get("announcementID")
+@app.route('/announcement/<announcementID>')
+def show_detail_announcement(announcementID):
     ancFromdb = database.get_message_by_id(announcementID)
     announcement = {
         "_CourseName": ancFromdb["_CourseName"],
@@ -99,6 +98,22 @@ def show_whole_announcement():
         "_Title": ancFromdb["_Title"]
     }
     return  render_template("elements.html", announcement=announcement)
+
+
+@app.route('/announcement_course/<openID>')
+def show_course_for_announcement(openID):
+    #get all courses by openID
+    courses = database.get_courses_by_openID(openID)
+
+    return render_template("class.html", openID=openID, courses=courses)
+
+
+@app.route('/anc_of_a_course/<courseID>')
+def show_announcements_of_a_course(courseID):
+    #get all announcements by courseID
+    announcements = database.get_announcements_by_courseID(courseID)
+    coursename = database.get_coursename_by_courseID(courseID)
+    return render_template("notices.html", coursename=coursename, announcements=announcements)
 
 
 @app.route('/bind', methods=['GET', 'POST'])
@@ -227,6 +242,20 @@ class Handler:
             }
             return wechat.response_news([card])
 
+    def response_announcement_course(self) -> str:
+        userstatus = database.get_status_by_openid(self.openID)
+        if userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
+            return wechat.response_text(content="您还未绑定过学号")
+        elif userstatus == database.STATUS_WAITING:
+            return wechat.response_text(content="正在为您开启服务，此过程不会超过一分钟，请在收到提示后查询")
+        elif userstatus == database.STATUS_OK:
+            card = {
+                'description': "点击选择课程",
+                'url': "%s/announcement_course/%s" % (_HOST_HTTP, self.openID),
+                'title': "按课程查看公告"
+            }
+            return wechat.response_news([card])
+
     def response_announce(self) -> str:
         userstatus = database.get_status_by_openid(self.openID)
         if userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
@@ -253,17 +282,16 @@ class Handler:
             }
             cardList = [cardHead] + [
                 {'title': str(anc["_Time"]) + "|" + anc["_CourseName"] + "\n" + anc["_Title"],
-                 'url': "%s/announcement?announcementID=%s" % (_HOST_HTTP, anc["_ID"]), 'description': ""} for anc in announcements]
+                 'url': "%s/announcement/%s" % (_HOST_HTTP, anc["_ID"]), 'description': ""} for anc in announcements]
         else:
             cardHead = {
                 'description': "",
-
-                #'url': "%s/showAllAnc?openID=%s" % (_HOST_HTTP, self.openID),
+                'url': "%s/showAllAnc?openID=%s" % (_HOST_HTTP, self.openID),
                 'title': "点击查看更多公告"
             }
             cardList = [cardHead] + [
                 {'title': str(anc["_Time"]) + "|" + anc["_CourseName"] + "\n" + anc["_Title"],
-                 'url': "%s/announcement?announcementID=%s" % (_HOST_HTTP, anc["_ID"]), 'description': ""} for anc in announcements[:6]]
+                 'url': "%s/announcement/%s" % (_HOST_HTTP, anc["_ID"]), 'description': ""} for anc in announcements[:6]]
 
         return wechat.response_news(cardList)
 
