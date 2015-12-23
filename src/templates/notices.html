@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>课程公告</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  
+	<link rel="stylesheet" type="text/css" href="{{url_for("static", filename="css/normalize.css")}}">
+	<link rel="stylesheet" type="text/css" href="{{url_for("static", filename="css/framework.css")}}">
+	<link rel="stylesheet" type="text/css" href="{{url_for("static", filename="css/main.css")}}">
+	<script src="{{url_for("static", filename="scripts/webfont.js")}}"></script>
+	<link href="{{url_for("static", filename="css/ionicons.min.css")}}" rel="stylesheet" type="text/css" />
+</head>
+<body>
+  <section class="w-section mobile-wrapper">
+
+    <div class="page-content" id="main-stack">
+      <div class="w-nav navbar" data-collapse="all" data-animation="over-left" data-duration="400" data-contain="1" data-easing="ease-out-quint" data-no-scroll="1">
+        <div class="w-container">
+          <div class="wrapper-mask" data-ix="menu-mask"></div>
+          <div class="navbar-title">课程公告</div>
+         
+        </div>
+      </div>
+      <div class="body">
+        <div class="hero-image">
+          <div class="hero-image-title">
+            <h2>课程公告</h2>
+            <div class="sub-title-small">0/2 已读</div>
+          </div>
+          <div class="hero-image-img"><img src="images/photo-1429032021766-c6a53949594f.jpg">
+          </div>
+        </div>
+      </div>
+      <div class = "item-list-container-highlighted">
+        <span class="icon-list highlighted">
+                <div class="icon ion-ios-checkmark-empty"></div>
+        </span>
+        <div class = "text-container"> 
+        <span class = "text-field"> 
+        这是个已读公告的模板
+        </span>
+        </div>
+      </div>
+      <div class="h_line"></div> 
+
+
+
+      <div class = "item-list-container">
+        <span class="icon-list">
+                <div class="icon ion-ios-checkmark-empty"></div>
+              </span>  
+        <div class = "text-container"> 
+        <span class = "text-field"> 
+        这是个未读公告的模板
+        </span>
+        </div>
+      </div>
+      <div class="h_line"></div> 
+    </div>
+    <div class="page-content loading-mask" id="new-stack">
+      <div class="loading-icon">
+        <div class="navbar-button-icon icon ion-load-d"></div>
+      </div>
+    </div>
+    <div class="shadow-layer"></div>
+  </section>
+	<script type="text/javascript" src={{url_for("static", filename="scripts/jquery.min.js")}}></script>
+	<script type="text/javascript" src={{url_for("static", filename="scripts/framework.js")}}></script>
+</body>
+</html>

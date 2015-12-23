@@ -88,6 +88,19 @@ def show_homework():
     return render_template("homeworklist.html", openID=openID, homeworks=homeworks)
 
 
+@app.route('/announcement')
+def show_whole_announcement():
+    announcementID = request.args.get("announcementID")
+    ancFromdb = database.get_message_by_id(announcementID)
+    announcement = {
+        "_CourseName": ancFromdb["_CourseName"],
+        "_Time": ancFromdb["_Time"],
+        "_Text": ancFromdb["_Text"],
+        "_Title": ancFromdb["_Title"]
+    }
+    return  render_template("elements.html", announcement=announcement)
+
+
 @app.route('/bind', methods=['GET', 'POST'])
 def bind_student_account():
     """
@@ -232,23 +245,25 @@ class Handler:
                 'title': "暂无新公告"
             }
             return wechat.response_news([cardNoAnnounce])
-        elif len(announcements) < 9:
+        elif len(announcements) < 6:
             cardHead = {
                 'description': "",
-                'url': "",
-                'title': "最新的%d条公告" % len(announcements)
+                'url': "%s/showAllAnc?openID=%s" % (_HOST_HTTP, self.openID),
+                'title': "点击查看更多公告"
             }
             cardList = [cardHead] + [
-                {'title': str(anc["_Time"]) + "|" + anc["_CourseName"] + "\n" + anc["_Title"] + "\n" + anc["_Text"],
-                 'url': "", 'description': ""} for anc in announcements]
+                {'title': str(anc["_Time"]) + "|" + anc["_CourseName"] + "\n" + anc["_Title"],
+                 'url': "%s/announcement?announcementID=%s" % (_HOST_HTTP, anc["_ID"]), 'description': ""} for anc in announcements]
         else:
             cardHead = {
                 'description': "",
-                'title': "最新的8条公告"
+
+                #'url': "%s/showAllAnc?openID=%s" % (_HOST_HTTP, self.openID),
+                'title': "点击查看更多公告"
             }
             cardList = [cardHead] + [
-                {'title': str(anc["_Time"]) + "|" + anc["_CourseName"] + "\n" + anc["_Title"] + "\n" + anc["_Text"],
-                 'description': ""} for anc in announcements[:8]]
+                {'title': str(anc["_Time"]) + "|" + anc["_CourseName"] + "\n" + anc["_Title"],
+                 'url': "%s/announcement?announcementID=%s" % (_HOST_HTTP, anc["_ID"]), 'description': ""} for anc in announcements[:6]]
 
         return wechat.response_news(cardList)
 
@@ -320,11 +335,57 @@ def _get_globals():
     _APP_ID = app['appID']
     _APP_TOKEN = app['Token']
     _APP_SECRET = app['appsecret']
-    _APP_BUTTONS = app['buttons']
     _TEMPLATE_SUCCESS = app['successTemplate']
     _TEMPLATE_BIND_SUCCESS = app['bindsuccessTemplate']
     _TEMPLATE_HOMEWORK = app['homeworkTemplate']
     _TEMPLATE_ANNOUNCEMENT = app['announcementTemplate']
+
+    _APP_BUTTONS = {
+        "button": [
+            {
+                "type": "click",
+                "name": "学号管理",
+                "sub_button": [
+                    {
+                        "type": "click",
+                        "name": "绑定",
+                        "key": "BIND"
+                    },
+                    {
+                        "type": "click",
+                        "name": "解除绑定",
+                        "key": "UNBIND"
+                    }
+                ]
+            },
+            {
+                "type": "click",
+                "name": "公告",
+                "sub_button": [
+                    {
+                        "type": "click",
+                        "name": "查看最新公告",
+                        "key": "ANNOUNCEMENT"
+                    },
+                    {
+                        "type": "click",
+                        "name": "按课程查看公告",
+                        "key": "ANNOUNCEMENT_COURSE"
+                    }
+                ]
+            },
+            {
+                "name": "作业",
+                "sub_button": [
+                    {
+                        "type": "click",
+                        "name": "未截止的作业",
+                        "key": "HOMEWORK"
+                    }
+                ]
+            }
+        ]
+    }
     # get ip
     global _MY_IP
     global _MY_PORT
