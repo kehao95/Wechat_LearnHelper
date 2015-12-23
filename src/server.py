@@ -158,8 +158,9 @@ def push_messages():
     openidlist = map(lambda x: x["openid"], data["users"])
     if push_type == "register_done":
         for user in data['users']:
-            database.set_status_by_openid(user['openid'],database.STATUS_OK)
-            send_success_message(user['openid'], user['username'])
+            if database.get_status_by_openid(user['openid']) != database.STATUS_DELETE:
+                database.set_status_by_openid(user['openid'],database.STATUS_OK)
+                send_success_message(user['openid'], user['username'])
     elif push_type == "new_messages":
         send_new_announcement(openidlist, data["data"])
     elif push_type == "new_works":
