@@ -115,8 +115,8 @@ def show_course_for_announcement(openID):
 @app.route('/anc_of_a_course/<courseID>')
 def show_announcements_of_a_course(courseID):
     #get all announcements by courseID
-    announcements = database.get_announcements_by_courseID(courseID)
-    coursename = database.get_coursename_by_courseID(courseID)
+    announcements = database.get_messages_by_courseID(courseID)
+    coursename = database.get_course_name(courseID)
     return render_template("notices.html", coursename=coursename, announcements=announcements)
 
 
@@ -330,6 +330,8 @@ class Handler:
                     response = self.response_bind()
                 elif key == "ANNOUNCEMENT":
                     response = self.response_announce()
+                elif key == "ANNOUNCEMENT_COURSE":
+                    response = self.response_announcement_course()
                 elif key == "HOMEWORK":
                     response = self.response_homework()
                 elif key == "UNBIND":
@@ -368,11 +370,51 @@ def _get_globals():
     _APP_ID = app['appID']
     _APP_TOKEN = app['Token']
     _APP_SECRET = app['appsecret']
-    _APP_BUTTONS = app['buttons']
     _TEMPLATE_SUCCESS = app['successTemplate']
     _TEMPLATE_BIND_SUCCESS = app['bindsuccessTemplate']
     _TEMPLATE_HOMEWORK = app['homeworkTemplate']
     _TEMPLATE_ANNOUNCEMENT = app['announcementTemplate']
+    _APP_BUTTONS = {
+      "button": [
+        {
+          "type": "click",
+          "name": "学号管理",
+          "sub_button": [
+            {
+              "type": "click",
+              "name": "绑定",
+              "key": "BIND"
+            },
+            {
+              "type": "click",
+              "name": "解除绑定",
+              "key": "UNBIND"
+            }
+          ]
+        },
+        {
+          "name": "公告",
+          "type": "click",
+            "sub_button": [
+            {
+              "type": "click",
+              "name": "最新公告",
+              "key": "ANNOUNCEMENT"
+            },
+            {
+              "type": "click",
+              "name": "按课程查看公告",
+              "key": "ANNOUNCEMENT_COURSE"
+            }
+          ]
+        },
+        {
+          "name": "作业",
+          "type": "click",
+          "key": "HOMEWORK"
+        }
+      ]
+    }
     # get ip
     global _MY_IP
     global _MY_PORT

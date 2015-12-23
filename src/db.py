@@ -17,7 +17,7 @@ class Database:
     S_GET_USERS_BY_CID = "SELECT SQL_NO_CACHE UserInfo.UID,AES_DECRYPT(UserInfo.UPd,%s),UserInfo.OpenID FROM UserCourse,UserInfo WHERE UserInfo.UID=UserCourse.UID AND UserCourse.CID=%s"
     S_GET_A_USER_BY_CID = "SELECT SQL_NO_CACHE UserInfo.UID,AES_DECRYPT(UserInfo.UPd,%s),UserInfo.OpenID FROM CourseName,UserInfo WHERE UserInfo.UID=CourseName.UID AND CourseName.CID=%s"
     S_GET_MSG_BY_MID = "SELECT SQL_NO_CACHE CID,Time,Title,Text FROM Message WHERE MID = %s"
-    S_GET_MSG_BY_CID = "SELECT SQL_NO_CACHE CID,Time,Title,Text FROM Message WHERE CID = %s"
+    S_GET_MSG_BY_CID = "SELECT SQL_NO_CACHE CID,Time,Title,Text,MID FROM Message WHERE CID = %s"
     S_GET_MSG_IN_DAYS = "SELECT SQL_NO_CACHE CID,Time,Title,Text,MID FROM Message WHERE CID = %s AND DATE_SUB(CURDATE(),INTERVAL %s DAY) <= date(Time)"
     # S_GET_WORK_BY_CID = "SELECT SQL_NO_CACHE CID,EndTime,Title,Text WHERE CID = %s"
     S_GET_COURSENAME = "SELECT SQL_NO_CACHE CID,Name FROM CourseName"
@@ -112,7 +112,7 @@ class Database:
             return i
         return ""
 
-    # 从openid获取 （用户名，密码）
+    ###从openid获取 （用户名，密码）
     def get_data_by_openid(self, openID):
         cur = self.cnx.cursor()
         cur.execute(self.S_GET_DATA_BY_OPENID, (self.key, openID))
@@ -389,6 +389,23 @@ class Database:
         for user in curA:
             ret.append({"username":user[0], "password":user[1],"openid":user[2]})
         curB.execute(self.S_DELETE_ALL_NEW_USERS)
+        return ret
+
+    def get_courses_by_openID(self,openID):
+        ret = []
+        uid = self.get_data_by_openid(openID)[0]
+        cidlist = self.get_all_courses(uid)
+        for cid in cidlist:
+            ret.append({"_ID":cid,"_CourseName":self.get_course_name(cid)})
+        return ret
+
+    def get_messages_by_courseID(self,cid):
+        ret = []
+        cur = self.cnx.cursor()
+        cur.execute(self.S_GET_MSG_BY_CID, (cid,))
+        for msg in cur:
+            # CID,Time,Title,Text,MID
+            ret.append({'_Time': msg[1], '_Title': msg[2], '_CourseName': self.get_course_name([msg[0]]), '_Text': msg[3],'_ID':msg[4]})
         return ret
 
 if __name__ == "__main__":
