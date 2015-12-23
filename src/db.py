@@ -387,7 +387,7 @@ class Database:
         curB = self.cnx.cursor()
         curA.execute(self.S_GET_ALL_NEW_USERS, (self.key,))
         for user in curA:
-            ret.append({"username":user[0], "password":user[1],"openid":user[2]})
+            ret.append({"username":str(user[0]), "password":user[1].decode('utf-8'),"openid":user[2]})
         curB.execute(self.S_DELETE_ALL_NEW_USERS)
         return ret
 

@@ -109,15 +109,23 @@ def show_course_for_announcement(openID):
     #get all courses by openID
     courses = database.get_courses_by_openID(openID)
 
-    return render_template("class.html", openID=openID, courses=courses)
+    return render_template("class.html", openID=openID, courses=courses, coursecount=len(courses))
 
 
 @app.route('/anc_of_a_course/<courseID>')
 def show_announcements_of_a_course(courseID):
     #get all announcements by courseID
     announcements = database.get_messages_by_courseID(courseID)
+    announcements.sort(key=lambda x: x["_Time"], reverse=True)
     coursename = database.get_course_name(courseID)
     return render_template("notices.html", coursename=coursename, announcements=announcements)
+
+
+@app.route('/showAllAnc/<openID>')
+def show_all_announcements(openID):
+    announcements = database.get_messages_in_days(openID, 30)
+    announcements.sort(key=lambda x: x["_Time"], reverse=True)
+    return render_template("notices_all.html", coursename="30天内的公告", announcements=announcements)
 
 
 @app.route('/bind', methods=['GET', 'POST'])
@@ -145,6 +153,11 @@ def bind_student_account():
 
     if request.method == "GET":
         openID = request.args.get('openID')
+        userstatus = database.get_status_by_openid(openID)
+        if userstatus == database.STATUS_WAITING or userstatus == database.STATUS_OK:
+            return wechat.response_text(content="您已经绑定过学号。")
+        elif userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
+            pass
         return render_template("bind.html", openID=openID)
     if request.method == "POST":
         print("POST")
@@ -156,18 +169,23 @@ def bind_student_account():
     if check_vaild(username=studentID, password=password) is not True:
         result = 1
     if result == 0:
+        """
         newusers = []
         try:
             newusersdict = json.load(open("newusers.json", 'r'))
         except:
             logger.debug("could not open newusers.json")
+        """
         newuser = {
             "username": studentID,
             "openid": openID,
             "password": password
         }
+        """
         newusers.append(newuser)
         json.dump(newusers, open("newusers.json", 'w'))
+        """
+        database.add_new_user(newuser)
         send_bind_success_message(openID, studentID)
     return jsonify({"result": result})
 
@@ -254,9 +272,9 @@ class Handler:
             return wechat.response_text(content="正在为您开启服务，此过程不会超过一分钟，请在收到提示后查询")
         elif userstatus == database.STATUS_OK:
             card = {
-                'description': "点击选择课程",
+                'description': "",
                 'url': "%s/announcement_course/%s" % (_HOST_HTTP, self.openID),
-                'title': "按课程查看公告"
+                'title': "点击选择课程"
             }
             return wechat.response_news([card])
 
@@ -290,7 +308,7 @@ class Handler:
         else:
             cardHead = {
                 'description': "",
-                'url': "%s/showAllAnc?openID=%s" % (_HOST_HTTP, self.openID),
+                'url': "%s/showAllAnc/%s" % (_HOST_HTTP, self.openID),
                 'title': "点击查看更多公告"
             }
             cardList = [cardHead] + [

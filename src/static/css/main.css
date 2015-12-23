@@ -211,11 +211,11 @@ a {
 .icon-list {
   display: block;
   width: 10%;
-  height: 60px;
+  height: 80px;
   float: left;
   color: #ddd;
   font-size: 40px;
-  line-height: 60px;
+  line-height: 80px;
   text-align: center;
 }
 .icon-list1 {
@@ -479,19 +479,18 @@ a {
   left: 0%;
   top:0px;
   width: 90%;
-  height: 60px;
+  height: 80px;
   table-layout: fixed;
-  overflow-y:auto;
 }
 .text-container-class{
+  overflow-y:hidden;
   position: relative;
   display: table;
   left: 4%;
   top:0px;
   width: 86%;
-  height: 60px;
+  height: 80px;
   table-layout: fixed;
-  overflow-y:auto;
 }
 .text-field{
   display: table-cell; 
@@ -514,16 +513,18 @@ a {
 }
 .item-list-container
 {
-  height: 60px;
+  height: 80px;
   cursor: pointer;
   width: 100%;
+  overflow-y:hidden;
   word-wrap: break-word;
 }
 .item-list-container-highlighted
 {
   background-color: #f7f7f7;
-  height: 60px;
+  height: 80px;
   cursor: pointer;
+  overflow-y:hidden;
   width: 100%;
   word-wrap: break-word;
 }
@@ -532,7 +533,7 @@ a {
     height: 1px;
     border: 0;
     border-top: 0px solid #ccc;
-    background-color: purple;
+    background-color: gray;
     padding: 0;
 }
 .right-input-link:active {
@@ -1132,8 +1133,8 @@ input[type=text]:focus, textarea:focus {
 }
 #notice-details
 {
-  position: absolute;
-  top:80px;
+  position: relative;
+  top:20px;
   margin-left: 5%;
   width: 90%;
 }
