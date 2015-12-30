@@ -60,7 +60,11 @@ def main_listener():
         data = request.get_data().decode('utf-8')
         logger.info("post")
         handler = Handler(data)
-        response = handler.get_response()
+        try:
+            response = handler.get_response()
+        except:
+            logger.debug("get_response time out")
+            return ""
         return response
 
 
@@ -88,6 +92,42 @@ def show_homework():
     return render_template("homeworklist.html", openID=openID, homeworks=homeworks)
 
 
+@app.route('/announcement/<announcementID>')
+def show_detail_announcement(announcementID):
+    ancFromdb = database.get_message_by_id(announcementID)
+    announcement = {
+        "_CourseName": ancFromdb["_CourseName"],
+        "_Time": ancFromdb["_Time"],
+        "_Text": ancFromdb["_Text"],
+        "_Title": ancFromdb["_Title"]
+    }
+    return  render_template("elements.html", announcement=announcement)
+
+
+@app.route('/announcement_course/<openID>')
+def show_course_for_announcement(openID):
+    #get all courses by openID
+    courses = database.get_courses_by_openID(openID)
+
+    return render_template("class.html", openID=openID, courses=courses, coursecount=len(courses))
+
+
+@app.route('/anc_of_a_course/<courseID>')
+def show_announcements_of_a_course(courseID):
+    #get all announcements by courseID
+    announcements = database.get_messages_by_courseID(courseID)
+    announcements.sort(key=lambda x: x["_Time"], reverse=True)
+    coursename = database.get_course_name(courseID)
+    return render_template("notices.html", coursename=coursename, announcements=announcements)
+
+
+@app.route('/showAllAnc/<openID>')
+def show_all_announcements(openID):
+    announcements = database.get_messages_in_days(openID, 30)
+    announcements.sort(key=lambda x: x["_Time"], reverse=True)
+    return render_template("notices_all.html", coursename="30天内的公告", announcements=announcements)
+
+
 @app.route('/bind', methods=['GET', 'POST'])
 def bind_student_account():
     """
@@ -104,7 +144,7 @@ def bind_student_account():
             userid=username,
             userpass=password,
         )
-        r = requests.post(_URL_LOGIN, data)
+        r = requests.post(_URL_LOGIN, data,timeout=5)
         content = r.content
         if len(content) > 120:
             return False
@@ -113,6 +153,11 @@ def bind_student_account():
 
     if request.method == "GET":
         openID = request.args.get('openID')
+        userstatus = database.get_status_by_openid(openID)
+        if userstatus == database.STATUS_WAITING or userstatus == database.STATUS_OK:
+            return wechat.response_text(content="您已经绑定过学号。")
+        elif userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
+            pass
         return render_template("bind.html", openID=openID)
     if request.method == "POST":
         print("POST")
@@ -124,18 +169,23 @@ def bind_student_account():
     if check_vaild(username=studentID, password=password) is not True:
         result = 1
     if result == 0:
+        """
         newusers = []
         try:
             newusersdict = json.load(open("newusers.json", 'r'))
         except:
             logger.debug("could not open newusers.json")
+        """
         newuser = {
             "username": studentID,
             "openid": openID,
             "password": password
         }
+        """
         newusers.append(newuser)
         json.dump(newusers, open("newusers.json", 'w'))
+        """
+        database.add_new_user(newuser)
         send_bind_success_message(openID, studentID)
     return jsonify({"result": result})
 
@@ -154,7 +204,7 @@ def push_messages():
     openidlist = map(lambda x: x["openid"], data["users"])
     if push_type == "register_done":
         for user in data['users']:
-            if database.get_status_by_openid(user['openid']) == database.STATUS_WAITING:
+            if database.get_status_by_openid(user['openid']) != database.STATUS_DELETE:
                 database.set_status_by_openid(user['openid'],database.STATUS_OK)
                 send_success_message(user['openid'], user['username'])
     elif push_type == "new_messages":
@@ -203,9 +253,9 @@ class Handler:
     def response_homework(self) -> str:
         userstatus = database.get_status_by_openid(self.openID)
         if userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
-            return wechat.response_text(content="您还未绑定过学号")
+            return wechat.response_text(content="您还未绑定过学号。")
         elif userstatus == database.STATUS_WAITING:
-            return wechat.response_text(content="正在为您开启服务，此过程不会超过一分钟，请在收到提示后查询")
+            return wechat.response_text(content="正在为您开启服务，请在服务开启后查询。")
         elif userstatus == database.STATUS_OK:
             card = {
                 'description': "点击查看所有未截止作业",
@@ -214,12 +264,26 @@ class Handler:
             }
             return wechat.response_news([card])
 
-    def response_announce(self) -> str:
+    def response_announcement_course(self) -> str:
         userstatus = database.get_status_by_openid(self.openID)
         if userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
             return wechat.response_text(content="您还未绑定过学号")
         elif userstatus == database.STATUS_WAITING:
-            return wechat.response_text(content="正在为您开启服务，一般不会超过一分钟，请在服务开启后查询")
+            return wechat.response_text(content="正在为您开启服务，此过程不会超过一分钟，请在收到提示后查询")
+        elif userstatus == database.STATUS_OK:
+            card = {
+                'description': "",
+                'url': "%s/announcement_course/%s" % (_HOST_HTTP, self.openID),
+                'title': "点击选择课程"
+            }
+            return wechat.response_news([card])
+
+    def response_announce(self) -> str:
+        userstatus = database.get_status_by_openid(self.openID)
+        if userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
+            return wechat.response_text(content="您还未绑定过学号。")
+        elif userstatus == database.STATUS_WAITING:
+            return wechat.response_text(content="正在为您开启服务，请在服务开启后查询。")
         elif userstatus == database.STATUS_OK:
             pass
         announcements = database.get_messages_in_days(self.openID, 30)
@@ -239,19 +303,21 @@ class Handler:
                 'title': "最新的%d条公告" % len(announcements)
             }
             cardList = [cardHead] + [
-                {'title': str(anc["_Time"]) + "|" + anc["_CourseName"] + "\n" + anc["_Title"] + "\n" + anc["_Text"],
-                 'url': "", 'description': ""} for anc in announcements]
+                {'title': str(anc["_Time"]) + "|" + anc["_CourseName"] + "\n" + anc["_Title"],
+                 'url': "%s/announcement/%s" % (_HOST_HTTP, anc["_ID"]), 'description': ""} for anc in announcements]
         else:
             cardHead = {
                 'description': "",
-                'title': "最新的8条公告"
+                'url': "%s/showAllAnc/%s" % (_HOST_HTTP, self.openID),
+                'title': "点击查看更多公告"
             }
             cardList = [cardHead] + [
-                {'title': str(anc["_Time"]) + "|" + anc["_CourseName"] + "\n" + anc["_Title"] + "\n" + anc["_Text"],
-                 'description': ""} for anc in announcements[:8]]
+                {'title': str(anc["_Time"]) + "|" + anc["_CourseName"] + "\n" + anc["_Title"],
+                 'url': "%s/announcement/%s" % (_HOST_HTTP, anc["_ID"]), 'description': ""} for anc in announcements[:6]]
 
         return wechat.response_news(cardList)
 
+    @settimeout(3)
     def get_response(self) -> str:
         """
         根据message类型以及内容确定事件类型
@@ -282,6 +348,8 @@ class Handler:
                     response = self.response_bind()
                 elif key == "ANNOUNCEMENT":
                     response = self.response_announce()
+                elif key == "ANNOUNCEMENT_COURSE":
+                    response = self.response_announcement_course()
                 elif key == "HOMEWORK":
                     response = self.response_homework()
                 elif key == "UNBIND":
@@ -320,11 +388,51 @@ def _get_globals():
     _APP_ID = app['appID']
     _APP_TOKEN = app['Token']
     _APP_SECRET = app['appsecret']
-    _APP_BUTTONS = app['buttons']
     _TEMPLATE_SUCCESS = app['successTemplate']
     _TEMPLATE_BIND_SUCCESS = app['bindsuccessTemplate']
     _TEMPLATE_HOMEWORK = app['homeworkTemplate']
     _TEMPLATE_ANNOUNCEMENT = app['announcementTemplate']
+    _APP_BUTTONS = {
+      "button": [
+        {
+          "type": "click",
+          "name": "学号管理",
+          "sub_button": [
+            {
+              "type": "click",
+              "name": "绑定",
+              "key": "BIND"
+            },
+            {
+              "type": "click",
+              "name": "解除绑定",
+              "key": "UNBIND"
+            }
+          ]
+        },
+        {
+          "name": "公告",
+          "type": "click",
+            "sub_button": [
+            {
+              "type": "click",
+              "name": "最新公告",
+              "key": "ANNOUNCEMENT"
+            },
+            {
+              "type": "click",
+              "name": "按课程查看公告",
+              "key": "ANNOUNCEMENT_COURSE"
+            }
+          ]
+        },
+        {
+          "name": "作业",
+          "type": "click",
+          "key": "HOMEWORK"
+        }
+      ]
+    }
     # get ip
     global _MY_IP
     global _MY_PORT
@@ -351,12 +459,18 @@ def _get_globals():
     db_secret = secrets['database']
     database = db.Database(username=db_secret['username'], password=db_secret['password'],
                            database=db_secret['database_name'], salt=db_secret['key'], address=db_secret['host'])
+    # create buttons
+    try:
+        _create_buttons()
+    except:
+        logger.info("failed to create button")
 
-
+@settimeout(2)
 def _create_buttons():
+
     # delete
     respond = wechat.delete_menu()
-    logger.info("Delete Button: %s" % respond)
+    logger.debug("Delete Button: %s" % respond)
     # add
     respond = wechat.create_menu(_APP_BUTTONS)
     logger.debug("Add Button: %s" % respond)
@@ -369,8 +483,11 @@ def send_success_message(openID, studentnumber):
             "color": "#ff0000"
         }
     }
-    wechat.send_template_message(user_id=openID, template_id=_TEMPLATE_SUCCESS, data=pushdata, url="")
-
+    try:
+        with timeout(3):
+            wechat.send_template_message(user_id=openID, template_id=_TEMPLATE_SUCCESS, data=pushdata, url="")
+    except:
+        logger.debug("send_template_message timeout")
 
 def send_bind_success_message(openID, studentnumber):
     pushdata = {
@@ -379,8 +496,11 @@ def send_bind_success_message(openID, studentnumber):
             "color": "#ff0000"
         }
     }
-    wechat.send_template_message(user_id=openID, template_id=_TEMPLATE_BIND_SUCCESS, data=pushdata, url="")
-
+    try:
+        with timeout(3):
+            wechat.send_template_message(user_id=openID, template_id=_TEMPLATE_BIND_SUCCESS, data=pushdata, url="")
+    except:
+        logger.debug("send_template_message timeout")
 
 def send_new_homework(openIDs, homework):
     pushdata = {
@@ -402,7 +522,12 @@ def send_new_homework(openIDs, homework):
         }
     }
     for user_id in openIDs:
-        wechat.send_template_message(user_id=user_id, template_id=_TEMPLATE_HOMEWORK, data=pushdata, url="")
+        try:
+            with timeout(3):
+                wechat.send_template_message(user_id=user_id, template_id=_TEMPLATE_HOMEWORK, data=pushdata, url="")
+        except:
+            logger.debug("send_template_message timeout")
+
 
 
 def send_new_announcement(openIDs, annoucement):
@@ -430,10 +555,6 @@ def send_new_announcement(openIDs, annoucement):
 
 def main():
     _get_globals()
-    try:
-        _create_buttons()
-    except:
-        pass
     app.run(host='0.0.0.0', use_debugger=True, use_reloader=False, port=_MY_PORT)
 
 
