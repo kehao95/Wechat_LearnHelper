@@ -16,19 +16,21 @@ class Database:
     S_GET_CID_BY_UID = "SELECT SQL_NO_CACHE CID FROM UserCourse WHERE UID = %s"
     S_GET_USERS_BY_CID = "SELECT SQL_NO_CACHE UserInfo.UID,AES_DECRYPT(UserInfo.UPd,%s),UserInfo.OpenID FROM UserCourse,UserInfo WHERE UserInfo.UID=UserCourse.UID AND UserCourse.CID=%s"
     S_GET_A_USER_BY_CID = "SELECT SQL_NO_CACHE UserInfo.UID,AES_DECRYPT(UserInfo.UPd,%s),UserInfo.OpenID FROM CourseName,UserInfo WHERE UserInfo.UID=CourseName.UID AND CourseName.CID=%s"
-    S_GET_MSG_BY_CID = "SELECT SQL_NO_CACHE CID,Time,Title,Text FROM Message WHERE CID = %s"
-    S_GET_MSG_IN_DAYS = "SELECT SQL_NO_CACHE CID,Time,Title,Text FROM Message WHERE CID = %s AND DATE_SUB(CURDATE(),INTERVAL %s DAY) <= date(Time)"
+    S_GET_MSG_BY_MID = "SELECT SQL_NO_CACHE CID,Time,Title,Text FROM Message WHERE MID = %s"
+    S_GET_MSG_BY_CID = "SELECT SQL_NO_CACHE CID,Time,Title,Text,MID FROM Message WHERE CID = %s"
+    S_GET_MSG_IN_DAYS = "SELECT SQL_NO_CACHE CID,Time,Title,Text,MID FROM Message WHERE CID = %s AND DATE_SUB(CURDATE(),INTERVAL %s DAY) <= date(Time)"
     # S_GET_WORK_BY_CID = "SELECT SQL_NO_CACHE CID,EndTime,Title,Text WHERE CID = %s"
     S_GET_COURSENAME = "SELECT SQL_NO_CACHE CID,Name FROM CourseName"
     S_GET_COURSENAME_BY_UID = "SELECT SQL_NO_CACHE Name FROM CourseName WHERE CID = %s"
     S_GET_NAME_FROM_CID = "SELECT SQL_NO_CACHE Name FROM CourseName WHERE CID = %s"
-    S_GET_WORK_AFTER = "SELECT SQL_NO_CACHE CID,EndTime,Title,WID,Text FROM Work WHERE CID = %s AND EndTime > DATE(%s)"
+    S_GET_WORK_AFTER = "SELECT SQL_NO_CACHE CID,EndTime,Title,WID,Text FROM Work WHERE CID = %s AND EndTime >= DATE(%s)"
     S_GET_ALL_USER = "SELECT SQL_NO_CACHE UID, AES_DECRYPT(UPd,%s), OpenID FROM UserInfo"
     S_GET_ALL_UID = "SELECT SQL_NO_CACHE UID FROM UserInfo"
     S_GET_ALL_MID = "SELECT SQL_NO_CACHE MID FROM Message"
     S_GET_ALL_CID = "SELECT SQL_NO_CACHE CID FROM CourseName"
     S_GET_ALL_WID = "SELECT SQL_NO_CACHE WID FROM Work"
     S_GET_DATA_DELETE_USER = "SELECT SQL_NO_CACHE UID,OpenID FROM UserInfo WHERE Status = 2"
+    S_GET_ALL_NEW_USERS = "SELECT SQL_NO_CACHE UID,AES_DECRYPT(UPd,%s),OpenID FROM WaitingUserInfo"
 
     S_IS_WORK_FINISHED = "SELECT SQL_NO_CACHE WID FROM WorkFinished WHERE UID = %s AND WID = %s"
 
@@ -38,6 +40,7 @@ class Database:
     S_INSERT_COURSENAME = "INSERT IGNORE INTO CourseName (CID, Name,UID) VALUES(%s,%s,%s)"
     S_INSERT_MESSAGE = "INSERT IGNORE INTO Message (MID,CID,Time,Title,Text) VALUES(%s,%s,DATE(%s),%s,%s)"
     S_INSERT_USERCOURSE = "INSERT IGNORE INTO UserCourse (UID,CID) VALUES(%s,%s)"
+    S_INSERT_NEW_USER = "INSERT IGNORE INTO WaitingUserInfo (UID,UPd,OpenID) VALUES (%s,AES_ENCRYPT(%s,%s),%s)"
 
     S_CHANGE_PSW_BY_OPENID = "UPDATE IGNORE UserInfo SET UPd=AES_ENCRYPT(%s,%s) WHERE OpenID=%s"
     S_CHANGE_USER_FOR_COURSE = "UPDATE IGNORE UserCourse SET UID=%d WHERE CID=%d"
@@ -48,6 +51,7 @@ class Database:
 
     S_DELETE_USER = "DELETE FROM UserInfo WHERE OpenID=%s"
     S_DELETE_USERCOURSE_BY_USER = "DELETE FROM UserCourse WHERE UID=%s"
+    S_DELETE_ALL_NEW_USERS = "DELETE FROM WaitingUserInfo"
 
     STATUS_OK = 0
     STATUS_NOT_FOUND = -1
@@ -79,7 +83,7 @@ class Database:
         S_BUILD_USERINFO = "create table UserInfo (UID int primary key, UPd blob, OpenID varchar(30), Status int)"
         S_BUILD_USERCOURSE = "create table UserCourse (UID int, CID int, primary key(UID, CID))"
         S_BUILD_WORKFINISHED = "create table WorkFinished (UID int, WID int, primary key(UID, WID))"
-
+        S_BUILD_WAITINGUSERCOURSE = "create table WaitingUserInfo (UID int primary key, UPd blob, OpenID varchar(30))"
         ###注：Status标记用户状态。其中,0:正常，1:等待第一次 2:等待删除。-1：数据库中没有这个用户
 
         cur = self.cnx.cursor()
@@ -108,7 +112,7 @@ class Database:
             return i
         return ""
 
-    # 从openid获取 （用户名，密码）
+    ###从openid获取 （用户名，密码）
     def get_data_by_openid(self, openID):
         cur = self.cnx.cursor()
         cur.execute(self.S_GET_DATA_BY_OPENID, (self.key, openID))
@@ -336,10 +340,18 @@ class Database:
                 continue
             curM.execute(self.S_GET_MSG_IN_DAYS, (course[0], days))
             for msg in curM:
-                # CID,Time,Title,Text
-                elem = {'_Time': msg[1], '_Title': msg[2], '_CourseName': self.get_course_name([msg[0]]), '_Text': msg[3]}
+                # CID,Time,Title,Text,MID
+                elem = {'_Time': msg[1], '_Title': msg[2], '_CourseName': self.get_course_name([msg[0]]), '_Text': msg[3], '_ID': msg[4]}
                 ret.append(elem)
         return ret
+
+    def get_message_by_id(self, mid):
+        cur = self.cnx.cursor()
+        cur.execute(self.S_GET_MSG_BY_MID, (mid,))
+        for msg in cur:
+            # CID,Time,Title,Text
+            elem = {'_Time': msg[1], '_Title': msg[2], '_CourseName': self.get_course_name([msg[0]]), '_Text': msg[3]}
+            return elem
 
     def is_work_finished(self, uid, wid):
         cur = self.cnx.cursor()
@@ -365,6 +377,36 @@ class Database:
                 ret.append(elem)
         return ret
 
+    def add_new_user(self, user):
+        cur = self.cnx.cursor()
+        cur.execute(self.S_INSERT_NEW_USER,(user['username'],user['password'],self.key,user['openid']))
+
+    def get_all_new_users(self):
+        ret = []
+        curA = self.cnx.cursor()
+        curB = self.cnx.cursor()
+        curA.execute(self.S_GET_ALL_NEW_USERS, (self.key,))
+        for user in curA:
+            ret.append({"username":str(user[0]), "password":user[1].decode('utf-8'),"openid":user[2]})
+        curB.execute(self.S_DELETE_ALL_NEW_USERS)
+        return ret
+
+    def get_courses_by_openID(self,openID):
+        ret = []
+        uid = self.get_data_by_openid(openID)[0]
+        cidlist = self.get_all_courses(uid)
+        for cid in cidlist:
+            ret.append({"_ID":cid,"_CourseName":self.get_course_name(cid)})
+        return ret
+
+    def get_messages_by_courseID(self,cid):
+        ret = []
+        cur = self.cnx.cursor()
+        cur.execute(self.S_GET_MSG_BY_CID, (cid,))
+        for msg in cur:
+            # CID,Time,Title,Text,MID
+            ret.append({'_Time': msg[1], '_Title': msg[2], '_CourseName': self.get_course_name([msg[0]]), '_Text': msg[3],'_ID':msg[4]})
+        return ret
 
 if __name__ == "__main__":
     db = Database()

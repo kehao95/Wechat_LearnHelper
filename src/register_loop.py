@@ -18,6 +18,8 @@ def get_users():
     using file to transfer the data
     :return: users dict list
     """
+    users = database.get_all_new_users()
+    """
     users = []
     __logger.debug("get_users")
     try:
@@ -27,7 +29,9 @@ def get_users():
     except:
         __logger.debug("could not open 'newusers.json'")
         pass
+    """
     return users
+
 
 
 def push_ok(users):

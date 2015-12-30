@@ -14,6 +14,7 @@ create table Message (MID int primary key, CID int, Time date, Text TEXT, Title 
 create table UserInfo (UID int primary key, UPd blob, OpenID varchar(30), Status int);
 create table UserCourse (UID int, CID int, primary key(UID, CID));
 create table WorkFinished (UID int, WID int, primary key(UID, WID));
+create table WaitingUserInfo (UID int primary key, UPd blob, OpenID varchar(30));
 show variables like '%character%';
 show tables;
 ```
