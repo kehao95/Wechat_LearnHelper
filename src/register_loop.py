@@ -1,6 +1,8 @@
 __author__ = "kehao"
 __email__ = "kehao95@gmail.com"
 
+import sys
+sys.path += ["./lib/aiolearn"]
 from aiolearn import *
 import db
 import json
