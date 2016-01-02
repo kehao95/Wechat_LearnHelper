@@ -374,6 +374,7 @@ def main():
 while True:
     try:
         main()
-    except:
-        pass
+    except Exception as e:
+        print(str(e))
+
 
