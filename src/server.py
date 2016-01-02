@@ -62,7 +62,7 @@ def main_listener():
     else:  # 主要功能
         data = request.get_data().decode('utf-8')
         logger.info("post")
-        handler = wechat_handler.Handler(data, database, _HOST_HTTP)
+        handler = wechat_handler.Handler(data, database, _HOST_HTTP, wechat)
         try:
             response = handler.get_response()
         except:
@@ -217,157 +217,6 @@ def push_messages():
     return ""
 
 
-class Handler:
-    """
-    消息处理类，对每次微信服务器消息构造一次，各方法共用消息的基本信息
-    函数共用user信息使得个性化响应更方便友好
-    """
-    global wechat
-    global logger
-
-    def __init__(self, data):
-        self.wechat = wechat
-        self.data = data
-        wechat.parse_data(data)
-        self.message = wechat.message
-        self.openID = self.message.source
-
-    def response_bind(self) -> str:
-        userstatus = database.get_status_by_openid(self.openID)
-        if userstatus == database.STATUS_WAITING or userstatus == database.STATUS_OK:
-            return wechat.response_text(content="您已经绑定过学号。")
-        elif userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
-            pass
-        card = {
-            'description': "点击进入绑定页面",
-            'url': "%s/bind?openID=%s" % (_HOST_HTTP, self.openID),
-            'title': "绑定"
-        }
-        return wechat.response_news([card])
-
-    def response_unbind(self) -> str:
-        userstatus = database.get_status_by_openid(self.openID)
-        if userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
-            return wechat.response_text(content="您还未绑定过学号。")
-        elif userstatus == database.STATUS_WAITING or userstatus == database.STATUS_OK:
-            database.unbind_user_openID(self.openID)
-            return wechat.response_text(content="您已成功解除绑定。")
-
-    def response_homework(self) -> str:
-        userstatus = database.get_status_by_openid(self.openID)
-        if userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
-            return wechat.response_text(content="您还未绑定过学号。")
-        elif userstatus == database.STATUS_WAITING:
-            return wechat.response_text(content="正在为您开启服务，请在服务开启后查询。")
-        elif userstatus == database.STATUS_OK:
-            card = {
-                'description': "点击查看所有未截止作业",
-                'url': "%s/homework?openID=%s" % (_HOST_HTTP, self.openID),
-                'title': "作业"
-            }
-            return wechat.response_news([card])
-
-    def response_announcement_course(self) -> str:
-        userstatus = database.get_status_by_openid(self.openID)
-        if userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
-            return wechat.response_text(content="您还未绑定过学号")
-        elif userstatus == database.STATUS_WAITING:
-            return wechat.response_text(content="正在为您开启服务，此过程不会超过一分钟，请在收到提示后查询")
-        elif userstatus == database.STATUS_OK:
-            card = {
-                'description': "",
-                'url': "%s/announcement_course/%s" % (_HOST_HTTP, self.openID),
-                'title': "点击选择课程"
-            }
-            return wechat.response_news([card])
-
-    def response_announce(self) -> str:
-        userstatus = database.get_status_by_openid(self.openID)
-        if userstatus == database.STATUS_NOT_FOUND or userstatus == database.STATUS_DELETE:
-            return wechat.response_text(content="您还未绑定过学号。")
-        elif userstatus == database.STATUS_WAITING:
-            return wechat.response_text(content="正在为您开启服务，请在服务开启后查询。")
-        elif userstatus == database.STATUS_OK:
-            pass
-        announcements = database.get_messages_in_days(self.openID, 30)
-        announcements.sort(key=lambda x: x["_Time"], reverse=True)
-        cardList = []
-        if announcements == []:
-            cardNoAnnounce = {
-                'description': "用户:%s" % self.openID,
-                'url': "",
-                'title': "暂无新公告"
-            }
-            return wechat.response_news([cardNoAnnounce])
-        elif len(announcements) < 9:
-            cardHead = {
-                'description': "",
-                'url': "",
-                'title': "最新的%d条公告" % len(announcements)
-            }
-            cardList = [cardHead] + [
-                {'title': str(anc["_Time"]) + "|" + anc["_CourseName"] + "\n" + anc["_Title"],
-                 'url': "%s/announcement/%s" % (_HOST_HTTP, anc["_ID"]), 'description': ""} for anc in announcements]
-        else:
-            cardHead = {
-                'description': "",
-                'url': "%s/showAllAnc/%s" % (_HOST_HTTP, self.openID),
-                'title': "点击查看更多公告"
-            }
-            cardList = [cardHead] + [
-                {'title': str(anc["_Time"]) + "|" + anc["_CourseName"] + "\n" + anc["_Title"],
-                 'url': "%s/announcement/%s" % (_HOST_HTTP, anc["_ID"]), 'description': ""} for anc in announcements[:6]]
-
-        return wechat.response_news(cardList)
-
-    @settimeout(3)
-    def get_response(self) -> str:
-        """
-        根据message类型以及内容确定事件类型
-        交给response处理获取并返回response
-        :param message data:
-        :return: response
-        """
-        response = ""
-        if isinstance(self.message, TextMessage):
-            logger.debug("TextMessage")
-            content = self.message.content
-            if "绑定" in content:
-                response = self.response_bind()
-            elif "作业" in content:
-                response = self.response_homework()
-            elif "公告" in content:
-                response = self.response_announce()
-            elif "解除绑定" in content:
-                response = self.response_unbind()
-            else:
-                response = wechat.response_text(content="Echo:%s" % content)
-        elif isinstance(self.message, EventMessage):
-            logger.info("EventMessage")
-            type = self.message.type
-            if type == "click":
-                key = self.message.key
-                if key == "BIND":
-                    response = self.response_bind()
-                elif key == "ANNOUNCEMENT":
-                    response = self.response_announce()
-                elif key == "ANNOUNCEMENT_COURSE":
-                    response = self.response_announcement_course()
-                elif key == "HOMEWORK":
-                    response = self.response_homework()
-                elif key == "UNBIND":
-                    response = self.response_unbind()
-                else:
-                    pass
-            elif type == "templatesendjobfinish":
-                logger.debug("template send job finish")
-            else:
-                pass
-        else:
-            return wechat.response_text(content="请输入文字信息")
-        return response
-
-
 def _get_globals():
     @settimeout(2)
     def _create_buttons():
@@ -405,7 +254,7 @@ def _get_globals():
     _TEMPLATE_BIND_SUCCESS = app['bindsuccessTemplate']
     _TEMPLATE_HOMEWORK = app['homeworkTemplate']
     _TEMPLATE_ANNOUNCEMENT = app['announcementTemplate']
-    _APP_BUTTONS = wechat_buttons
+    _APP_BUTTONS = WeChatButtons.wechat_buttons
     # get ip
     global _MY_IP
     global _MY_PORT
