@@ -117,7 +117,7 @@ async def update_database():
     push_ok(users)
 
 
-async def main():
+async def main_loop():
     while True:
         await  asyncio.gather(update_database())
         print("wait for another 3 seconds")
@@ -125,10 +125,17 @@ async def main():
         print("let's do it again!")
 
 
-if __name__ == "__main__":
+def main():
     with open(".secret.json", 'r') as f:
         db_secret = json.loads(f.read())['database']
         database = db.Database(username=db_secret['username'], password=db_secret['password'],
                                database=db_secret['database_name'], salt=db_secret['key'], address=db_secret['host'])
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+    loop.run_until_complete(main_loop())
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except:
+        pass

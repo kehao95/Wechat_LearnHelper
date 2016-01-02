@@ -155,7 +155,7 @@ async def update_completions():
     database.update_completion(completion)
 
 
-async def main():
+async def main_loop():
     while True:
         await update_courses()
         await update_completions()
@@ -163,10 +163,16 @@ async def main():
         await asyncio.sleep(20)
 
 
-if __name__ == '__main__':
+def main():
     with open(".secret.json", 'r') as f:
         db_secret = json.loads(f.read())['database']
         database = db.Database(username=db_secret['username'], password=db_secret['password'],
                                database=db_secret['database_name'], salt=db_secret['key'], address=db_secret['host'])
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+    loop.run_until_complete(main_loop())
+
+if __name__ == '__main__':
+    try:
+        main()
+    except:
+        pass

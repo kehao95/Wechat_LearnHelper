@@ -371,5 +371,9 @@ def main():
     app.run(host='0.0.0.0', use_debugger=True, use_reloader=False, port=_MY_PORT)
 
 
-if __name__ == '__main__':
-    main()
+while True:
+    try:
+        main()
+    except:
+        pass
+
