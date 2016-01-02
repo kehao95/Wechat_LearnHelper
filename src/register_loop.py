@@ -126,6 +126,7 @@ async def main_loop():
 
 
 def main():
+    global database
     with open(".secret.json", 'r') as f:
         db_secret = json.loads(f.read())['database']
         database = db.Database(username=db_secret['username'], password=db_secret['password'],
