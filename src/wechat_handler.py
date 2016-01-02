@@ -1,5 +1,5 @@
 """
-ÏûÏ¢´¦ÀíÀà
+æ¶ˆæ¯å¤„ç†ç±»
 """
 from flask import Flask, request, abort, render_template, json, jsonify
 from datetime import date
@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 
 class Handler:
     """
-    ÏûÏ¢´¦ÀíÀà£¬¶ÔÃ¿´ÎÎ¢ĞÅ·şÎñÆ÷ÏûÏ¢¹¹ÔìÒ»´Î£¬¸÷·½·¨¹²ÓÃÏûÏ¢µÄ»ù±¾ĞÅÏ¢
-    º¯Êı¹²ÓÃuserĞÅÏ¢Ê¹µÃ¸öĞÔ»¯ÏìÓ¦¸ü·½±ãÓÑºÃ
+    æ¶ˆæ¯å¤„ç†ç±»ï¼Œå¯¹æ¯æ¬¡å¾®ä¿¡æœåŠ¡å™¨æ¶ˆæ¯æ„é€ ä¸€æ¬¡ï¼Œå„æ–¹æ³•å…±ç”¨æ¶ˆæ¯çš„åŸºæœ¬ä¿¡æ¯
+    å‡½æ•°å…±ç”¨userä¿¡æ¯ä½¿å¾—ä¸ªæ€§åŒ–å“åº”æ›´æ–¹ä¾¿å‹å¥½
     """
     global wechat
     global logger
@@ -45,29 +45,29 @@ class Handler:
     def response_bind(self) -> str:
         userstatus = self.database.get_status_by_openid(self.openID)
         if userstatus == self.database.STATUS_WAITING or userstatus == self.database.STATUS_OK:
-            return wechat.response_text(content="ÄúÒÑ¾­°ó¶¨¹ıÑ§ºÅ¡£")
+            return wechat.response_text(content="æ‚¨å·²ç»ç»‘å®šè¿‡å­¦å·ã€‚")
         elif userstatus == self.database.STATUS_NOT_FOUND or userstatus == self.database.STATUS_DELETE:
             pass
         card = {
-            'description': "µã»÷½øÈë°ó¶¨Ò³Ãæ",
+            'description': "ç‚¹å‡»è¿›å…¥ç»‘å®šé¡µé¢",
             'url': "%s/bind?openID=%s" % (self._HOST_HTTP, self.openID),
-            'title': "°ó¶¨"
+            'title': "ç»‘å®š"
         }
         return wechat.response_news([card])
 
     def response_unbind(self) -> str:
         userstatus = self.database.get_status_by_openid(self.openID)
         if userstatus == self.database.STATUS_NOT_FOUND or userstatus == self.database.STATUS_DELETE:
-            return wechat.response_text(content="Äú»¹Î´°ó¶¨¹ıÑ§ºÅ¡£")
+            return wechat.response_text(content="æ‚¨è¿˜æœªç»‘å®šè¿‡å­¦å·ã€‚")
         elif userstatus == self.database.STATUS_WAITING or userstatus == self.database.STATUS_OK:
             self.database.unbind_user_openID(self.openID)
-            return wechat.response_text(content="ÄúÒÑ³É¹¦½â³ı°ó¶¨¡£")
+            return wechat.response_text(content="æ‚¨å·²æˆåŠŸè§£é™¤ç»‘å®šã€‚")
 
     def response_homework(self) -> str:
         card = {
-            'description': "µã»÷²é¿´ËùÓĞÎ´½ØÖ¹×÷Òµ",
+            'description': "ç‚¹å‡»æŸ¥çœ‹æ‰€æœ‰æœªæˆªæ­¢ä½œä¸š",
             'url': "%s/homework?openID=%s" % (self._HOST_HTTP, self.openID),
-            'title': "×÷Òµ"
+            'title': "ä½œä¸š"
         }
         return wechat.response_news([card])
 
@@ -75,7 +75,7 @@ class Handler:
         card = {
             'description': "",
             'url': "%s/announcement_course/%s" % (self._HOST_HTTP, self.openID),
-            'title': "µã»÷Ñ¡Ôñ¿Î³Ì"
+            'title': "ç‚¹å‡»é€‰æ‹©è¯¾ç¨‹"
         }
         return wechat.response_news([card])
 
@@ -85,16 +85,16 @@ class Handler:
         cardList = []
         if announcements == []:
             cardNoAnnounce = {
-                'description': "ÓÃ»§:%s" % self.openID,
+                'description': "ç”¨æˆ·:%s" % self.openID,
                 'url': "",
-                'title': "ÔİÎŞĞÂ¹«¸æ"
+                'title': "æš‚æ— æ–°å…¬å‘Š"
             }
             return wechat.response_news([cardNoAnnounce])
         elif len(announcements) < 9:
             cardHead = {
                 'description': "",
                 'url': "",
-                'title': "×îĞÂµÄ%dÌõ¹«¸æ" % len(announcements)
+                'title': "æœ€æ–°çš„%dæ¡å…¬å‘Š" % len(announcements)
             }
             cardList = [cardHead] + [
                 {'title': str(anc["_Time"]) + "|" + anc["_CourseName"] + "\n" + anc["_Title"],
@@ -103,7 +103,7 @@ class Handler:
             cardHead = {
                 'description': "",
                 'url': "%s/showAllAnc/%s" % (self._HOST_HTTP, self.openID),
-                'title': "µã»÷²é¿´¸ü¶à¹«¸æ"
+                'title': "ç‚¹å‡»æŸ¥çœ‹æ›´å¤šå…¬å‘Š"
             }
             cardList = [cardHead] + [
                 {'title': str(anc["_Time"]) + "|" + anc["_CourseName"] + "\n" + anc["_Title"],
@@ -114,8 +114,8 @@ class Handler:
     @settimeout(3)
     def get_response(self) -> str:
         """
-        ¸ù¾İmessageÀàĞÍÒÔ¼°ÄÚÈİÈ·¶¨ÊÂ¼şÀàĞÍ
-        ½»¸øresponse´¦Àí»ñÈ¡²¢·µ»Øresponse
+        æ ¹æ®messageç±»å‹ä»¥åŠå†…å®¹ç¡®å®šäº‹ä»¶ç±»å‹
+        äº¤ç»™responseå¤„ç†è·å–å¹¶è¿”å›response
         :param message data:
         :return: response
         """
@@ -128,9 +128,9 @@ class Handler:
                 if key in self.KEYS_NEED_BIND:
                     userstatus = self.database.get_status_by_openid(self.openID)
                     if userstatus == self.database.STATUS_NOT_FOUND or userstatus == self.database.STATUS_DELETE:
-                        return wechat.response_text(content="Äú»¹Î´°ó¶¨¹ıÑ§ºÅ")
+                        return wechat.response_text(content="æ‚¨è¿˜æœªç»‘å®šè¿‡å­¦å·")
                     elif userstatus == self.database.STATUS_WAITING:
-                        return wechat.response_text(content="ÕıÔÚÎªÄú¿ªÆô·şÎñ£¬´Ë¹ı³Ì²»»á³¬¹ıÒ»·ÖÖÓ£¬ÇëÔÚÊÕµ½ÌáÊ¾ºó²éÑ¯")
+                        return wechat.response_text(content="æ­£åœ¨ä¸ºæ‚¨å¼€å¯æœåŠ¡ï¼Œæ­¤è¿‡ç¨‹ä¸ä¼šè¶…è¿‡ä¸€åˆ†é’Ÿï¼Œè¯·åœ¨æ”¶åˆ°æç¤ºåæŸ¥è¯¢")
                     elif userstatus == self.database.STATUS_OK:
                         pass
 
@@ -151,5 +151,5 @@ class Handler:
             else:
                 pass
         else:
-            return wechat.response_text(content="Çëµã»÷¹¦ÄÜ°´Å¥")
+            return wechat.response_text(content="è¯·ç‚¹å‡»åŠŸèƒ½æŒ‰é’®")
         return response

@@ -2,38 +2,38 @@ wechat_buttons = {
     "button": [
         {
             "type": "click",
-            "name": "Ñ§ºÅ¹ÜÀí",
+            "name": "å­¦å·ç®¡ç†",
             "sub_button": [
                 {
                     "type": "click",
-                    "name": "°ó¶¨",
+                    "name": "ç»‘å®š",
                     "key": "BIND"
                 },
                 {
                     "type": "click",
-                    "name": "½â³ı°ó¶¨",
+                    "name": "è§£é™¤ç»‘å®š",
                     "key": "UNBIND"
                 }
             ]
         },
         {
-            "name": "¹«¸æ",
+            "name": "å…¬å‘Š",
             "type": "click",
             "sub_button": [
                 {
                     "type": "click",
-                    "name": "×îĞÂ¹«¸æ",
+                    "name": "æœ€æ–°å…¬å‘Š",
                     "key": "ANNOUNCEMENT"
                 },
                 {
                     "type": "click",
-                    "name": "°´¿Î³Ì²é¿´¹«¸æ",
+                    "name": "æŒ‰è¯¾ç¨‹æŸ¥çœ‹å…¬å‘Š",
                     "key": "ANNOUNCEMENT_COURSE"
                 }
             ]
         },
         {
-            "name": "×÷Òµ",
+            "name": "ä½œä¸š",
             "type": "click",
             "key": "HOMEWORK"
         }
