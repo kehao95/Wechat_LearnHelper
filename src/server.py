@@ -137,7 +137,7 @@ def bind_student_account():
     for get request (ask for bind) return the binding page
     for post request (user send user name and password)
         check the validation of id&pass
-        add to newuser file
+        add to newuser table
         give user success message
     :return:
     """
@@ -172,22 +172,11 @@ def bind_student_account():
     if check_vaild(username=studentID, password=password) is not True:
         result = 1
     if result == 0:
-        """
-        newusers = []
-        try:
-            newusersdict = json.load(open("newusers.json", 'r'))
-        except:
-            logger.debug("could not open newusers.json")
-        """
         newuser = {
             "username": studentID,
             "openid": openID,
             "password": password
         }
-        """
-        newusers.append(newuser)
-        json.dump(newusers, open("newusers.json", 'w'))
-        """
         database.add_new_user(newuser)
         send_bind_success_message(openID, studentID)
     return jsonify({"result": result})
