@@ -13,10 +13,13 @@ import requests
 sys.path += ["./lib", "./lib/wechat-python-sdk"]
 import getip
 import db
+import WeChatButtons
+import wechat_handler
 from timeout import (settimeout, timeout)
 from wechat_sdk import WechatBasic
 from wechat_sdk.messages import (TextMessage, VoiceMessage, ImageMessage, VideoMessage, LinkMessage, LocationMessage,
                                  EventMessage)
+
 
 # globals
 _MY_IP = ""
@@ -59,7 +62,7 @@ def main_listener():
     else:  # 主要功能
         data = request.get_data().decode('utf-8')
         logger.info("post")
-        handler = Handler(data)
+        handler = wechat_handler.Handler(data, database, _HOST_HTTP)
         try:
             response = handler.get_response()
         except:
@@ -366,6 +369,16 @@ class Handler:
 
 
 def _get_globals():
+    @settimeout(2)
+    def _create_buttons():
+
+        # delete
+        respond = wechat.delete_menu()
+        logger.debug("Delete Button: %s" % respond)
+        # add
+        respond = wechat.create_menu(_APP_BUTTONS)
+        logger.debug("Add Button: %s" % respond)
+
     # logger
     global logger
     logging.basicConfig(level=logging.DEBUG)
@@ -392,47 +405,7 @@ def _get_globals():
     _TEMPLATE_BIND_SUCCESS = app['bindsuccessTemplate']
     _TEMPLATE_HOMEWORK = app['homeworkTemplate']
     _TEMPLATE_ANNOUNCEMENT = app['announcementTemplate']
-    _APP_BUTTONS = {
-      "button": [
-        {
-          "type": "click",
-          "name": "学号管理",
-          "sub_button": [
-            {
-              "type": "click",
-              "name": "绑定",
-              "key": "BIND"
-            },
-            {
-              "type": "click",
-              "name": "解除绑定",
-              "key": "UNBIND"
-            }
-          ]
-        },
-        {
-          "name": "公告",
-          "type": "click",
-            "sub_button": [
-            {
-              "type": "click",
-              "name": "最新公告",
-              "key": "ANNOUNCEMENT"
-            },
-            {
-              "type": "click",
-              "name": "按课程查看公告",
-              "key": "ANNOUNCEMENT_COURSE"
-            }
-          ]
-        },
-        {
-          "name": "作业",
-          "type": "click",
-          "key": "HOMEWORK"
-        }
-      ]
-    }
+    _APP_BUTTONS = wechat_buttons
     # get ip
     global _MY_IP
     global _MY_PORT
@@ -465,15 +438,6 @@ def _get_globals():
     except:
         logger.info("failed to create button")
 
-@settimeout(2)
-def _create_buttons():
-
-    # delete
-    respond = wechat.delete_menu()
-    logger.debug("Delete Button: %s" % respond)
-    # add
-    respond = wechat.create_menu(_APP_BUTTONS)
-    logger.debug("Add Button: %s" % respond)
 
 
 def send_success_message(openID, studentnumber):
@@ -527,8 +491,6 @@ def send_new_homework(openIDs, homework):
                 wechat.send_template_message(user_id=user_id, template_id=_TEMPLATE_HOMEWORK, data=pushdata, url="")
         except:
             logger.debug("send_template_message timeout")
-
-
 
 def send_new_announcement(openIDs, annoucement):
     pushdata = {
